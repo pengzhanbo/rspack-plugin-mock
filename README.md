@@ -89,7 +89,7 @@ TODO...
 - [ ] websocket mock
 - [ ] build mock server
 - [ ] docs
-- [ ] examples
+- [x] examples
 
 ## Redirect
 
