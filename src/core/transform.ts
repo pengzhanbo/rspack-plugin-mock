@@ -9,10 +9,39 @@ import type { MockHttpItem, MockOptions, MockWebsocketItem } from '../types'
 import { urlParse } from './utils'
 import { isObjectSubset } from './validator'
 
+export function transformRawData(
+  rawData: (readonly [any, string])[],
+): (MockHttpItem | MockWebsocketItem | MockOptions)[] {
+  return rawData.filter(item => item[0]).map(([raw, __filepath__]) => {
+    let mockConfig
+    if (raw.default) {
+      if (Array.isArray(raw.default)) {
+        mockConfig = raw.default.map((item: any) => ({ ...item, __filepath__ }))
+      }
+      else {
+        mockConfig = { ...raw.default, __filepath__ }
+      }
+    }
+    else if ('url' in raw) {
+      mockConfig = { ...raw, __filepath__ }
+    }
+    else {
+      mockConfig = []
+      Object.keys(raw || {}).forEach((key) => {
+        if (Array.isArray(raw[key])) {
+          mockConfig.push(...raw[key].map(item => ({ ...item, __filepath__ })))
+        }
+        else {
+          mockConfig.push({ ...raw[key], __filepath__ })
+        }
+      })
+    }
+    return mockConfig
+  })
+}
+
 export function transformMockData(
-  mockList:
-    | Map<string, MockHttpItem | MockWebsocketItem | MockOptions>
-    | (MockHttpItem | MockWebsocketItem | MockOptions)[],
+  mockList: (MockHttpItem | MockWebsocketItem | MockOptions)[],
 ) {
   const list: MockOptions = []
   for (const [, handle] of mockList.entries()) {

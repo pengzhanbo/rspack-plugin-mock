@@ -19,12 +19,20 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
         if (!config.server?.proxy)
           return
 
+        const onProxyError = (err: Error, req: http.IncomingMessage, res: http.ServerResponse) => {
+          console.error(err?.stack || err)
+          res.statusCode = 500
+          res.end()
+        }
+
         if (isArray(config.server.proxy)) {
           config.server.proxy = config.server.proxy.map((item) => {
             if (typeof item !== 'function' && !item.ws) {
               const onProxyReq = item.onProxyReq
+              const onError = item.onError
               return {
                 ...item,
+                onError: onError || onProxyError,
                 onProxyReq: (proxyReq, req, ...args) => {
                   onProxyReq?.(proxyReq, req, ...args)
                   rewriteRequest(proxyReq, req)
@@ -40,6 +48,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
             onProxyReq?.(proxyReq, req, ...args)
             rewriteRequest(proxyReq, req)
           }
+          config.server.proxy.onError ??= onProxyError
         }
         else if (config.server.proxy) {
           const proxy = config.server.proxy as Record<string, any>
@@ -49,7 +58,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
             if (options.ws)
               return
 
-            const { onProxyReq, ...rest } = options
+            const { onProxyReq, onError, ...rest } = options
 
             proxy[key] = {
               ...rest,
@@ -57,6 +66,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
                 onProxyReq?.(proxyReq, req, ...args)
                 rewriteRequest(proxyReq, req)
               },
+              onError: onError || onProxyError,
             }
           })
         }
@@ -89,6 +99,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
           plugins: [new rspack.DefinePlugin(config.source?.define || {})],
           alias: {},
           proxies,
+          context: api.context.rootPath,
         }, options)
         compilerRun = run
         compilerClose = close

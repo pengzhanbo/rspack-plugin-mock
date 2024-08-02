@@ -10,9 +10,10 @@ import { createFilter } from '@rollup/pluginutils'
 import * as rspackCore from '@rspack/core'
 import { Volume, createFsFromVolume } from 'memfs'
 import type { MockOptions } from '../types'
-import { getDirname, lookupFile, normalizePath } from './utils'
+import { lookupFile, normalizePath } from './utils'
 import { loadFromCode } from './loadFromCode'
-import { transformMockData } from './transform'
+import { transformMockData, transformRawData } from './transform'
+import { resolveRspackOptions } from './resolveRspackOptions'
 
 export interface MockCompilerOptions {
   alias?: Record<string, false | string | (string | false)[]>
@@ -23,8 +24,6 @@ export interface MockCompilerOptions {
 }
 
 const vfs = createFsFromVolume(new Volume())
-
-const _dirname = getDirname(import.meta.url)
 
 export function createMockCompiler(options: MockCompilerOptions) {
   return new MockCompiler(options)
@@ -69,16 +68,20 @@ export class MockCompiler extends EventEmitter {
     this.watchMockFiles()
 
     this.createCompiler(async (err, stats) => {
+      const name = '[rspack:mock]'
       if (err) {
-        console.error('[rspack:mock-server]', err.stack || err)
+        const error = stats?.compilation.getLogger(name).error
+          || ((...args: string[]) => console.error(name, ...args))
+
+        error(err.stack || err)
         if ('details' in err) {
-          console.error('[rspack:mock-server]', err.details)
+          error(err.details)
         }
         return
       }
 
       if (stats?.hasErrors()) {
-        console.error('[rspack:mock-server]', stats.toString({ colors: true }))
+        stats.compilation.getLogger(name).error(stats.toString({ colors: true }))
         return
       }
 
@@ -90,7 +93,7 @@ export class MockCompiler extends EventEmitter {
           isESM: this.moduleType === 'esm',
           cwd: this.cwd,
         })
-        this._mockData = transformMockData(result)
+        this._mockData = transformMockData(transformRawData(result))
         this.emit('update')
       }
       catch (e) {
@@ -151,34 +154,7 @@ export class MockCompiler extends EventEmitter {
       importers.push(`import * as m${index} from '${file}'`)
       exporters.push(`[m${index}, '${filepath}']`)
     }
-    const code = `\
-${importers.join('\n')}\n
-const exporters = [
-  ${exporters.join(',\n  ')}
-] as (readonly [any, string])[]\n
-export default exporters.map(([raw, __filepath__]) => {
-  if (!raw) return
-  let mockConfig
-  if (raw.default) {
-    if (Array.isArray(raw.default)) {
-      mockConfig = raw.default.map(item => ({ ...item, __filepath__ }))
-    } else {
-      mockConfig = { ...raw.default, __filepath__ }
-    }
-  } else if ('url' in raw) {
-    mockConfig = { ...raw, __filepath__ }
-  } else {
-    mockConfig = []
-    Object.keys(raw || {}).forEach((key) => {
-      if (Array.isArray(raw[key])) {
-        mockConfig.push(...raw[key].map(item => ({ ...item, __filepath__ })))
-      } else {
-        mockConfig.push({ ...raw[key], __filepath__ })
-      }
-    })
-  }
-  return mockConfig
-})`
+    const code = `${importers.join('\n')}\n\nexport default [\n  ${exporters.join(',\n  ')}\n]`
     const dirname = path.dirname(this.entryFile)
 
     if (!fs.existsSync(dirname)) {
@@ -188,65 +164,19 @@ export default exporters.map(([raw, __filepath__]) => {
   }
 
   createCompiler(callback: (e: Error | null, res?: rspackCore.Stats) => void) {
-    const isEsm = this.moduleType === 'esm'
-    const targets = ['node >= 18.0.0']
-    this.compiler = rspackCore.rspack({
-      mode: 'production',
-      context: this.cwd,
-      entry: this.entryFile,
+    const options = resolveRspackOptions({
+      isEsm: this.moduleType === 'esm',
+      cwd: this.cwd,
+      plugins: this.options.plugins,
+      entryFile: this.entryFile,
+      outputFile: this.outputFile,
+      alias: this.options.alias,
       watch: true,
-      target: 'node18.0',
-      externalsType: isEsm ? 'module' : 'commonjs2',
-      externals: /^[^./].*/,
-      resolve: {
-        alias: this.options.alias,
-        extensions: ['.js', '.ts', '.cjs', '.mjs', '.json5', '.json'],
-      },
-      plugins: [...this.options.plugins],
-      output: {
-        library: { type: !isEsm ? 'commonjs2' : 'module' },
-        filename: this.outputFile,
-        path: '/',
-      },
-      experiments: { outputModule: isEsm },
-      module: {
-        rules: [
-          {
-            test: /\.json5?$/,
-            loader: path.join(_dirname, 'json5-loader.cjs'),
-            type: 'javascript/auto',
-          },
-          {
-            test: /\.[cm]?js$/,
-            use: [
-              {
-                loader: 'builtin:swc-loader',
-                options: {
-                  jsc: { parser: { syntax: 'ecmascript' } },
-                  env: { targets },
-                },
-              },
-            ],
-          },
-          {
-            test: /\.[cm]?ts$/,
-            use: [
-              {
-                loader: 'builtin:swc-loader',
-                options: {
-                  jsc: { parser: { syntax: 'typescript' } },
-                  env: { targets },
-                },
-              },
-            ],
-          },
-        ],
-      },
-    }, callback)
+    })
+
+    this.compiler = rspackCore.rspack(options, callback)
 
     if (this.compiler)
       this.compiler.outputFileSystem = vfs
-
-    return this.compiler
   }
 }
