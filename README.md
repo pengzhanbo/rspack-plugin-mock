@@ -4,8 +4,24 @@
 
 Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent with [vite-plugin-mock-dev-server](https://github.com/pengzhanbo/vite-plugin-mock-dev-server).
 
-> [!IMPORTANT]
-> The plugin is not ready yet and is actively being developed.
+## Features
+
+- ⚡️ Lightweight, Flexible, Fast.
+- 🧲 Not injection-based, non-intrusive to client code.
+- 💡 ESModule/commonjs.
+- 🦾 Typescript.
+- 🔥 HMR
+- 🏷 Support `.[cm]js`/ `.ts` /`.json` / `.json5`.
+- 📦 Auto import mock file.
+- 🎨 Support any lib, like `mockjs`, or do not use it.
+- 📥 Path rule matching, request parameter matching.
+- ⚙️ Support Enabled/Disabled any one of the API mock.
+- 📀 Supports response body content type such as `text/json/buffer/stream`.
+- ⚖️ Use `devServer.proxy` in rspack, or `server.proxy` in rsbuild.
+- 🍕 Support `viteConfig.define` and `env` in the mock file.
+- ⚓️ Support `viteConfig.resolve.alias` in the mock file.
+- 📤 Support `multipart` content-type, mock upload file.
+- 📥 Support mock download file.
 
 ## Usage
 
@@ -76,23 +92,599 @@ export default defineMock({
 })
 ```
 
+You can write using file formats such as `.js, .mjs, .cjs, .ts, .json, .json5`.
+
+## Methods
+
+### MockServerPlugin(pluginOptions)
+
+rspack mock server plugin.
+
+The plugin will read the `devServer` configuration and inject middleware into the http-server of `@rspack/dev-server`.
+
+```js
+import { MockServerPlugin } from 'rspack-plugin-mock'
+
+export default {
+  devServer: {
+    // The plugin will read the `proxy` option from the `devServer`
+    proxy: [
+      { context: '/api', target: 'http://example.com' },
+    ],
+  },
+  plugins: [
+    new MockServerPlugin(/* pluginOptions */),
+  ]
+}
+```
+
+### pluginMockServer(pluginOptions)
+
+rsbuild mock server plugin. **It is only used in `rsbuild`.**
+
+```ts
+// rsbuild.config.ts
+import { defineConfig } from '@rsbuild/core'
+import { pluginMockServer } from 'rspack-plugin-mock/rsbuild'
+
+export default defineConfig({
+  server: {
+    // The plugin will read the `proxy` option from the `server`
+    proxy: {
+      '/api': 'http://example.com',
+    },
+  },
+  plugins: [
+    pluginMockServer(/* pluginOptions */),
+  ],
+})
+```
+
+### defineMock(options)
+
+- **options:** [`MockOptions | MockOptions[]`](#mock-options)
+
+mock options Type helper
+
+```ts
+import { defineMock } from 'rspack-plugin-mock/helper'
+
+export default defineMock({
+  url: '/api/test',
+  body: { a: 1, b: 2 }
+})
+```
+
+### createDefineMock(transformer)
+
+- **transformer:** `(mock: MockOptions) => MockOptions`
+
+Return a custom defineMock function to support preprocessing of mock config.
+
+```ts
+const definePostMock = createDefineMock((mock) => {
+  mock.url = `/api/post/${mock.url}`
+})
+
+export default definePostMock({
+  url: 'list', // => '/api/post/list'
+  body: [{ title: '1' }, { title: '2' }],
+})
+```
+
 ## Plugin Options
 
-TODO...
+### options.prefix
 
-## Mock Configuration
+- **Type:** `string | string[]`
+- **Details:**
 
-TODO...
+  To configure the path matching rules for http mock services,
+  any request path starting with prefix will be intercepted and proxied.
+  If the prefix starts with `^`, it will be recognized as a `RegExp`.
 
-## TODO
+### options.cwd
 
-- [ ] websocket mock
-- [ ] build mock server
-- [ ] docs
-- [x] examples
+- **Type:** `string`
+- **Default:** `process.cwd()`
+- **Details:**
+
+  Configure the matching context for `include` and `exclude`.
+
+### options.include
+
+- **Type:** `string | string[]`
+- **Default:** `['mock/**/*.mock.{js,ts,cjs,mjs,json,json5}']`
+- **Details:**
+
+  glob string matching mock includes files. see [picomatch](https://github.com/micromatch/picomatch#globbing-features)
+
+### options.exclude
+
+- **Type:** `string | string[]`
+- **Default:** `['**/node_modules/**', '**/.vscode/**', '**/.git/**']`
+- **Details:**
+
+  glob string matching mock excluded files. see [picomatch](https://github.com/micromatch/picomatch#globbing-features)
+
+### options.log
+
+- **Type:** `boolean | 'info' | 'warn' | 'error' | 'silent' | 'debug'`
+- **Default:** `info`
+- **Details:**
+
+  Enable log and configure log level
+
+### options.cors
+
+- **Type:** `boolean | CorsOptions`
+- **Default:** `true`
+- **Details:**
+
+  Configure to [cors](https://github.com/expressjs/cors#configuration-options)
+
+### options.formidableOptions
+
+- **Type:** `FormidableOptions`
+- **Default:** `{ multiples: true }`
+- **Details:**
+
+  Configure to [formidable](https://github.com/node-formidable/formidable#options)
+
+### options.cookiesOptions
+
+- **Type:** `CookiesOptions`
+- **Details:**
+
+  Configure to [cookies](https://github.com/pillarjs/cookies#new-cookiesrequest-response--options)
+
+### options.bodyParserOptions
+
+- **Type:** `BodyParserOptions`
+- **Details:**
+
+  Configure to [co-body](https://github.com/cojs/co-body#options)
+
+## Mock Options
+
+### options.url
+
+- **Type:** `string`
+- **Details:**
+
+  The interface address that needs to be mocked, supported by [path-to-regexp](https://github.com/pillarjs/path-to-regexp) for path matching.
+
+### options.enabled
+
+- **Type:** `boolean`
+- **Default:** `true`
+- **Details:**
+
+  Whether to enable mock for this interface. In most scenarios, we only need to mock some interfaces instead of all requests that have been configured with mock.
+  Therefore, it is important to be able to configure whether to enable it or not.
+
+### options.method
+
+- **Type:** `Method | Method[]`
+- **Default:** `['GET', 'POST']`
+- **Details:**
+
+  The interface allows request methods
+
+```ts
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH'
+```
+
+### options.type
+
+- **Type:** `'text' | 'json' | 'buffer' | string`
+- **Details:**
+
+  Response body data type. And also support types included in [mime-db](https://github.com/jshttp/mime-db).
+
+  When the response body returns a file and you are not sure which type to use,
+  you can pass the file name as the value. The plugin will internally search for matching
+  `content-type` based on the file name suffix.
+
+### options.headers
+
+- **Type:** `object | (request: MockRequest) => object | Promise<object>`
+- **Default:** `{ 'Content-Type': 'application/json' }`
+- **Details:**
+
+  Configure the response body headers
+
+### options.status
+
+- **Type:** `number`
+- **Default:** `200`
+- **Details:**
+
+  Configure Response Header Status Code
+
+### options.statusText
+
+- **Type:** `string`
+- **Default:** `"OK"`
+- **Details:**
+
+  Configure response header status text
+
+### options.delay
+
+- **Type:** `number | [number, number]`
+- **Default:** `0`
+- **Details:**
+
+  Configure response delay time, If an array is passed in, it represents the range of delay time.
+
+  unit: `ms`
+
+### options.body
+
+- **Type:** `Body | (request: MockRequest) => Body | Promise<Body>`
+
+  ```ts
+  type Body = string | object | Buffer | Readable
+  ```
+
+- **Details:**
+
+  Configure response body data content.  `body` takes precedence over `response`.
+
+### options.response
+
+- **Type:** `(req: MockRequest, res: MockResponse, next: (err?: any) => void) => void | Promise<void>`
+- **Details:**
+
+  If you need to set complex response content, you can use the response method,
+  which is a middleware. Here, you can get information such as req
+  and res of the http request,
+  and then return response data through res.write() | res.end().
+  Otherwise, you need to execute next() method.
+  In `req`, you can also get parsed request information such as
+  `query`, `params`, `body` and `refererQuery`.
+
+### options.cookies
+
+- **Type:** `CookiesOptions | (request: MockRequest) => CookiesOptions | Promise<CookiesOptions>`
+
+```ts
+type CookiesOptions = Record<string, CookieValue>
+type CookieValue = string | [string, SetCookie]
+```
+
+- **Details:**
+
+  Configure response body cookies
+
+### Types
+
+```ts
+export type MockRequest = http.IncomingMessage & ExtraRequest
+
+export type MockResponse = http.ServerResponse<http.IncomingMessage> & {
+  /**
+   * Set cookie in response
+   * @see [cookies](https://github.com/pillarjs/cookies#cookiessetname--values--options)
+   */
+  setCookie: (
+    name: string,
+    value?: string | null,
+    option?: Cookies.SetOption,
+  ) => void
+}
+
+interface ExtraRequest {
+  /**
+   * The query string located after `?` in the request address has been parsed into JSON.
+   */
+  query: Record<string, any>
+  /**
+   * The queryString located after `?` in the referer request has been parsed as JSON.
+   */
+  refererQuery: Record<string, any>
+  /**
+   * Body data in the request
+   */
+  body: Record<string, any>
+  /**
+   * The params parameter parsed from the `/api/id/:id` in the request address.
+   */
+  params: Record<string, any>
+  /**
+   * headers data in the request
+   */
+  headers: Headers
+  /**
+   * Get the cookie carried in the request.
+   * @see [cookies](https://github.com/pillarjs/cookies#cookiesgetname--options)
+   */
+  getCookie: (name: string, option?: Cookies.GetOption) => string | undefined
+}
+```
+
+## Examples
+
+**exp:** Match `/api/test`, And returns a response body content with empty data
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+})
+```
+
+**exp:** Match `/api/test` , And returns a static content data
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+  body: { a: 1 },
+})
+```
+
+**exp:** Only Support `GET` Method
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+  method: 'GET'
+})
+```
+
+**exp:** In the response header, add a custom header and cookie
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+  headers: { 'X-Custom': '12345678' },
+  cookies: { 'my-cookie': '123456789' },
+})
+```
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+  headers({ query, body, params, headers }) {
+    return { 'X-Custom': query.custom }
+  },
+  cookies() {
+    return { 'my-cookie': '123456789' }
+  }
+})
+```
+
+**exp:** Define multiple mock requests for the same URL and match valid rules with validators
+
+``` ts
+export default defineMock([
+  // Match /api/test?a=1
+  {
+    url: '/api/test',
+    validator: {
+      query: { a: 1 },
+    },
+    body: { message: 'query.a == 1' },
+  },
+  // Match /api/test?a=2
+  {
+    url: '/api/test',
+    validator: {
+      query: { a: 2 },
+    },
+    body: { message: 'query.a == 2' },
+  },
+  {
+    // `?a=3` will resolve to `validator.query`
+    url: '/api/test?a=3',
+    body: { message: 'query.a == 3' }
+  },
+  // Hitting the POST /api/test request, and in the request body,
+  // field a is an array that contains items with values of 1 and 2.
+  {
+    url: '/api/test',
+    method: ['POST'],
+    validator: { body: { a: [1, 2] } }
+  }
+])
+```
+
+**exp:** Response Delay
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+  delay: 6000, // delay 6 seconds
+})
+```
+
+**exp:** The interface request failed
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+  status: 502,
+  statusText: 'Bad Gateway'
+})
+```
+
+**exp:** Dynamic route matching
+
+``` ts
+export default defineMock({
+  url: '/api/user/:userId',
+  body({ params }) {
+    return { userId: params.userId }
+  }
+})
+```
+
+The `userId` in the route will be resolved into the `request.params` object.
+
+**exp:** Use the buffer to respond data
+
+```ts
+import { Buffer } from 'node:buffer'
+
+// Since the default value of type is json,
+// although buffer is used for body during transmission,
+// the content-type is still json.
+export default defineMock({
+  url: 'api/buffer',
+  body: Buffer.from(JSON.stringify({ a: 1 }))
+})
+```
+
+``` ts
+// When the type is buffer, the content-type is application/octet-stream.
+// The data passed in through body will be converted to a buffer.
+export default defineMock({
+  url: 'api/buffer',
+  type: 'buffer',
+  // Convert using Buffer.from(body) for internal use
+  body: { a: 1 }
+})
+```
+
+**exp:** Response file type
+
+Simulate file download, and pass in the file reading stream.
+
+``` ts
+import { createReadStream } from 'node:fs'
+
+export default defineMock({
+  url: '/api/download',
+  // When you are unsure of the type, you can pass in the file name for internal parsing by the plugin.
+  type: 'my-app.dmg',
+  body: () => createReadStream('./my-app.dmg')
+})
+```
+
+```html
+<a href="/api/download" download="my-app.dmg">Download File</a>
+```
+
+**exp:** Use `mockjs`:
+
+``` ts
+import Mock from 'mockjs'
+
+export default defineMock({
+  url: '/api/test',
+  body: Mock.mock({
+    'list|1-10': [{
+      'id|+1': 1
+    }]
+  })
+})
+```
+
+You need install `mockjs`
+
+**exp:** Use `response` to customize the response
+
+``` ts
+export default defineMock({
+  url: '/api/test',
+  response(req, res, next) {
+    const { query, body, params, headers } = req
+    console.log(query, body, params, headers)
+
+    res.status = 200
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({
+      query,
+      body,
+      params,
+    }))
+  }
+})
+```
+
+**exp:** Use json / json5
+
+``` json
+{
+  "url": "/api/test",
+  "body": {
+    "a": 1
+  }
+}
+```
+
+**exp:** multipart, upload files.
+
+use [`formidable`](https://www.npmjs.com/package/formidable#readme) to support.
+
+``` html
+<form action="/api/upload" method="post" enctype="multipart/form-data">
+  <p>
+    <span>file: </span>
+    <input type="file" name="files" multiple="multiple">
+  </p>
+  <p>
+    <span>name:</span>
+    <input type="text" name="name" value="mark">
+  </p>
+  <p>
+    <input type="submit" value="submit">
+  </p>
+</form>
+```
+
+fields `files` mapping to `formidable.File`
+
+``` ts
+export default defineMock({
+  url: '/api/upload',
+  method: 'POST',
+  body(req) {
+    const body = req.body
+    return {
+      name: body.name,
+      files: body.files.map((file: any) => file.originalFilename),
+    }
+  },
+})
+```
+
+**exp:** Graphql
+
+``` ts
+import { buildSchema, graphql } from 'graphql'
+
+const schema = buildSchema(`
+type Query {
+  hello: String
+}
+`)
+const rootValue = { hello: () => 'Hello world!' }
+
+export default defineMock({
+  url: '/api/graphql',
+  method: 'POST',
+  body: async (request) => {
+    const source = request.body.source
+    const { data } = await graphql({ schema, rootValue, source })
+    return data
+  },
+})
+```
+
+``` ts
+fetch('/api/graphql', {
+  method: 'POST',
+  body: JSON.stringify({ source: '{ hello }' })
+})
+```
 
 ## Redirect
 
 - [rspack](https://rspack.dev)
 - [rsbuild](https://rsbuild.dev)
 - [vite-plugin-mock-dev-server](https://github.com/pengzhanbo/vite-plugin-mock-dev-server)
+
+## License
+
+[MIT License](/LICENSE)
