@@ -37,7 +37,7 @@ export interface MockServerPluginOptions {
    * @default []
    * @example ['/socket.io']
    */
-  wsPrefix?: string | string[]
+  // wsPrefix?: string | string[]
 
   /**
    * Configure the matching context for `include` and `exclude`.
