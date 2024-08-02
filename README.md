@@ -4,6 +4,16 @@
 
 Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent with [vite-plugin-mock-dev-server](https://github.com/pengzhanbo/vite-plugin-mock-dev-server).
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/rspack-plugin-mock"><img alt="npm" src="https://img.shields.io/npm/v/rspack-plugin-mock?style=flat-square"></a>
+  <img alt="node-current" src="https://img.shields.io/node/v/rspack-plugin-mock?style=flat-square">
+  <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rspack/core?style=flat-square">
+  <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rsbuild/core?style=flat-square">
+  <img alt="npm" src="https://img.shields.io/npm/dm/rspack-plugin-mock?style=flat-square">
+  <br>
+  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/pengzhanbo/rspack-plugin-mock/lint.yml?style=flat-square">
+</p>
+
 ## Features
 
 - ⚡️ Lightweight, Flexible, Fast.
