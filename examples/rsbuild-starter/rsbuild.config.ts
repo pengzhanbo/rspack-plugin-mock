@@ -7,14 +7,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        onError(err, req, res) {
-          console.error('[proxy:error]', err?.stack || err)
-          res.statusCode = 500
-          res.end()
-        },
-      },
+      '/api': 'http://localhost:8080',
     },
   },
   plugins: [
