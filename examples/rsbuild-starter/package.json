@@ -1,0 +1,16 @@
+{
+  "name": "rsbuild-starter",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "rsbuild dev --open",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "1.0.1-beta.8",
+    "rspack-plugin-mock": "workspace:*",
+    "typescript": "^5.5.4"
+  }
+}
