@@ -76,13 +76,20 @@ export default defineMock({
 })
 ```
 
-## PluginOptions
+## Plugin Options
 
 TODO...
 
 ## Mock Configuration
 
 TODO...
+
+## TODO
+
+- [ ] websocket mock
+- [ ] build mock server
+- [ ] docs
+- [ ] examples
 
 ## Redirect
 
