@@ -200,6 +200,7 @@ export default exporters.map(([raw, __filepath__]) => {
       externals: /^[^./].*/,
       resolve: {
         alias: this.options.alias,
+        extensions: ['.js', '.ts', '.cjs', '.mjs', '.json5', '.json'],
       },
       plugins: [...this.options.plugins],
       output: {
