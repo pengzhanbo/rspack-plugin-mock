@@ -58,8 +58,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "json5-loader.cjs"
+    "dist"
   ],
   "engines": {
     "node": ">=18.20.0"
