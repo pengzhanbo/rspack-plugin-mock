@@ -18,8 +18,8 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 - ⚙️ Support Enabled/Disabled any one of the API mock.
 - 📀 Supports response body content type such as `text/json/buffer/stream`.
 - ⚖️ Use `devServer.proxy` in rspack, or `server.proxy` in rsbuild.
-- 🍕 Support `viteConfig.define` and `env` in the mock file.
-- ⚓️ Support `viteConfig.resolve.alias` in the mock file.
+- 🍕 Support `define` in the mock file.
+- ⚓️ Support `alias` in the mock file.
 - 📤 Support `multipart` content-type, mock upload file.
 - 📥 Support mock download file.
 
