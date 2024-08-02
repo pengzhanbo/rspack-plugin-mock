@@ -61,12 +61,14 @@
     "dist"
   ],
   "engines": {
-    "node": ">=18.20.0"
+    "node": ">=18.20.0",
+    "pnpm": ">=9"
   },
   "scripts": {
     "dev": "tsup src --watch",
     "build": "tsup",
     "lint": "eslint .",
+    "prepare": "husky",
     "prepublishOnly": "pnpm run build",
     "release:changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
     "release": "bumpp package.json --execute=\"pnpm release:changelog\" --commit --all --push --tag && pnpm publish --access public"
@@ -119,7 +121,12 @@
     "conventional-changelog-cli": "^5.0.0",
     "esbuild": "^0.23.0",
     "eslint": "^9.8.0",
+    "husky": "^9.1.1",
+    "lint-staged": "^15.2.7",
     "tsup": "^8.2.3",
     "typescript": "^5.5.4"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
   }
 }
