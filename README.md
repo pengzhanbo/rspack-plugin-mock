@@ -195,6 +195,18 @@ export default definePostMock({
   any request path starting with prefix will be intercepted and proxied.
   If the prefix starts with `^`, it will be recognized as a `RegExp`.
 
+### options.wsPrefix
+
+- **Type:** `string | string[]`
+- **Details:**
+
+  Configure path matching rules for WebSocket mock service.
+  Any ws/wss requests with a request path starting with wsPrefix
+  will be intercepted by the proxy.
+  If wsPrefix starts with `^`, it will be recognized as a `RegExp`.
+
+  Please avoid having the configurations in `wsPrefix` appear in `devServer.proxy` / `server.proxy`, as this may lead to conflicts in the rules.
+
 ### options.cwd
 
 - **Type:** `string`
@@ -762,7 +774,7 @@ export default defineMock({
 
 ``` ts
 // app.ts
-const ws = new WebSocket('ws://localhost:5173/socket.io')
+const ws = new WebSocket('ws://localhost:3000/socket.io')
 ws.addEventListener('open', () => {
   setInterval(() => {
     // heartbeat
