@@ -65,19 +65,25 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
         }
       })
 
+      let server: http.Server
       function startMockServer() {
         if (!mockCompiler)
           return
 
         mockCompiler.run()
-        const server = createServer()
+        server = createServer()
         mockWebSocket(mockCompiler, server, resolvedOptions)
         server.listen(port)
       }
 
+      function close() {
+        mockCompiler?.close()
+        server?.close()
+      }
+
       api.onAfterStartDevServer(startMockServer)
       api.onAfterStartProdServer(startMockServer)
-      api.onExit(() => mockCompiler?.close())
+      api.onExit(close)
     },
   }
 }
