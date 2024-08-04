@@ -1,6 +1,6 @@
 import process from 'node:process'
 import type { RspackPluginInstance } from '@rspack/core'
-import { isBoolean, toArray, uniq } from '@pengzhanbo/utils'
+import { isBoolean, toArray } from '@pengzhanbo/utils'
 import type { MockServerPluginOptions } from '../types'
 import { type Logger, createLogger } from './logger'
 

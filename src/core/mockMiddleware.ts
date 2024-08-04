@@ -1,4 +1,3 @@
-import process from 'node:process'
 import type http from 'node:http'
 import type { RspackOptionsNormalized, RspackPluginInstance } from '@rspack/core'
 import cors, { type CorsOptions } from 'cors'
