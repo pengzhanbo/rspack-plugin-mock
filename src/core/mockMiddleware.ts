@@ -1,16 +1,12 @@
 import process from 'node:process'
 import type http from 'node:http'
 import type { RspackOptionsNormalized, RspackPluginInstance } from '@rspack/core'
-import { isBoolean, toArray } from '@pengzhanbo/utils'
 import cors, { type CorsOptions } from 'cors'
 import { pathToRegexp } from 'path-to-regexp'
-import type { MockServerPluginOptions } from '../types'
-import { resolvePluginOptions } from './resolvePluginOptions'
+import type { ResolvePluginOptions } from './resolvePluginOptions'
 import type { MockCompiler } from './mockCompiler'
-import { createMockCompiler } from './mockCompiler'
 import { doesProxyContextMatchUrl, urlParse } from './utils'
 import { baseMiddleware } from './baseMiddleware'
-import { createLogger } from './logger'
 
 export interface MiddlewareOptions {
   alias: Record<string, false | string | (string | false)[]>
@@ -19,70 +15,30 @@ export interface MiddlewareOptions {
   plugins: RspackPluginInstance[]
 }
 
-export function createManuallyMockMiddleware(
-  { alias, proxies, context = process.cwd(), plugins }: MiddlewareOptions,
-  pluginOptions: MockServerPluginOptions,
+export function createMockMiddleware(
+  compiler: MockCompiler,
+  options: ResolvePluginOptions,
 ) {
-  const options = resolvePluginOptions(pluginOptions, context)
-  const logger = createLogger(
-    'rspack:mock',
-    isBoolean(options.log) ? (options.log ? 'info' : 'error') : options.log,
-  )
+  function mockMiddleware(middlewares: Middleware[], reload?: () => void): Middleware[] {
+    middlewares.unshift(baseMiddleware(compiler, options))
 
-  const compiler = createMockCompiler({
-    alias,
-    plugins,
-    cwd: options.cwd,
-    include: toArray(options.include),
-    exclude: toArray(options.exclude),
-  })
-
-  function mockMiddleware(middlewares: Middleware[]): Middleware[] {
-    middlewares.unshift(baseMiddleware(compiler, {
-      formidableOptions: options.formidableOptions,
-      proxies,
-      cookiesOptions: options.cookiesOptions,
-      bodyParserOptions: options.bodyParserOptions,
-      priority: options.priority,
-      logger,
-    }))
-
-    const corsMiddleware = createCorsMiddleware(compiler, proxies, options)
+    const corsMiddleware = createCorsMiddleware(compiler, options)
     if (corsMiddleware) {
       middlewares.unshift(corsMiddleware)
+    }
+    if (options.reload) {
+      compiler.on('update', () => reload?.())
     }
 
     return middlewares
   }
-
-  return {
-    mockMiddleware,
-    run: () => compiler.run(),
-    close: () => compiler.close(),
-    updateAlias: compiler.updateAlias.bind(compiler),
-  }
-}
-
-export function createMockMiddleware(
-  middlewareOptions: MiddlewareOptions,
-  pluginOptions: MockServerPluginOptions,
-) {
-  const { mockMiddleware, run, close } = createManuallyMockMiddleware(
-    middlewareOptions,
-    pluginOptions,
-  )
-
-  run()
-
-  process.on('exit', () => close())
 
   return mockMiddleware
 }
 
 function createCorsMiddleware(
   compiler: MockCompiler,
-  proxies: (string | ((pathname: string, req: any) => boolean))[],
-  options: Required<MockServerPluginOptions>,
+  options: ResolvePluginOptions,
 ): Middleware | undefined {
   let corsOptions: CorsOptions = {}
 
@@ -95,6 +51,8 @@ function createCorsMiddleware(
       ...(typeof options.cors === 'boolean' ? {} : options.cors),
     }
   }
+
+  const proxies = options.proxies
 
   return !enabled
     ? undefined

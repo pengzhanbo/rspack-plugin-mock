@@ -25,7 +25,7 @@ export function getDirname(importMetaUrl: string): string {
   return path.dirname(fileURLToPath(importMetaUrl))
 }
 
-export const debug = Debug('rspack:mock-server')
+export const debug = Debug('rspack:mock')
 
 interface LookupFileOptions {
   pathOnly?: boolean
@@ -97,4 +97,16 @@ export function slash(p: string): string {
 }
 export function normalizePath(id: string): string {
   return path.posix.normalize(isWindows ? slash(id) : id)
+}
+
+export function waitingFor<T>(onSuccess: (value: T) => void, maxRetry = 5) {
+  return function wait(getter: () => T | null | undefined, retry = 0) {
+    const value = getter()
+    if (value) {
+      onSuccess(value)
+    }
+    else if (retry < maxRetry) {
+      setTimeout(() => wait(getter, retry + 1), 100)
+    }
+  }
 }

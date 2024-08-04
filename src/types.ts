@@ -37,7 +37,7 @@ export interface MockServerPluginOptions {
    * @default []
    * @example ['/socket.io']
    */
-  // wsPrefix?: string | string[]
+  wsPrefix?: string | string[]
 
   /**
    * Configure the matching context for `include` and `exclude`.
@@ -82,7 +82,7 @@ export interface MockServerPluginOptions {
    * 当你希望每次修改mock文件都刷新页面时，可以打开此选项。
    * @default false
    */
-  // reload?: boolean
+  reload?: boolean
 
   /**
    * Configure to `cors`
@@ -120,7 +120,7 @@ export interface MockServerPluginOptions {
    * 当需要构建一个小型mock服务时，可配置此项
    * @default false
    */
-  // build?: boolean | ServerBuildOption
+  build?: boolean | ServerBuildOption
 
   /**
    * Priority sorting for path matching rules is valid only for rules containing dynamic parameters.

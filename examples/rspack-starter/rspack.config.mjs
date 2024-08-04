@@ -22,6 +22,11 @@ export default {
         context: '/api',
         target: 'http://localhost:3000',
       },
+      {
+        context: '/socket.io',
+        target: 'ws://localhost:3000',
+        ws: true,
+      },
     ],
   },
   module: {
@@ -61,7 +66,9 @@ export default {
     ],
   },
   plugins: [
-    new MockServerPlugin(),
+    new MockServerPlugin({
+      wsPrefix: '/socket.io',
+    }),
     new rspack.HtmlRspackPlugin({ template: './index.html' }),
   ],
   experiments: {
