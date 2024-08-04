@@ -729,7 +729,7 @@ fetch('/api/graphql', {
 })
 ```
 
-exp:** WebSocket Mock
+**exp:** WebSocket Mock
 
 ``` ts
 // ws.mock.ts
