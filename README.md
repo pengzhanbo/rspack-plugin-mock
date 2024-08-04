@@ -10,7 +10,6 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
   <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rspack/core?style=flat-square">
   <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rsbuild/core?style=flat-square">
   <img alt="npm" src="https://img.shields.io/npm/dm/rspack-plugin-mock?style=flat-square">
-  <br>
   <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/pengzhanbo/rspack-plugin-mock/lint.yml?style=flat-square">
 </p>
 
@@ -32,6 +31,7 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 - ⚓️ Support `alias` in the mock file.
 - 📤 Support `multipart` content-type, mock upload file.
 - 📥 Support mock download file.
+- ⚜️ Support `WebSocket Mock`
 
 ## Usage
 
@@ -172,6 +172,8 @@ export default defineMock({
 Return a custom defineMock function to support preprocessing of mock config.
 
 ```ts
+import { createDefineMock } from 'rspack-plugin-mock/helper'
+
 const definePostMock = createDefineMock((mock) => {
   mock.url = `/api/post/${mock.url}`
 })
@@ -225,6 +227,15 @@ export default definePostMock({
 
   Enable log and configure log level
 
+### options.reload
+
+- **Type:** `boolean`
+- **Default:** `false`
+- **Details:**
+
+  If you want to refresh the page every time you modify a mock file,
+  you can open this option.
+
 ### options.cors
 
 - **Type:** `boolean | CorsOptions`
@@ -276,14 +287,15 @@ export default definePostMock({
 ### options.method
 
 - **Type:** `Method | Method[]`
+
+  ```ts
+  type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH'
+  ```
+
 - **Default:** `['GET', 'POST']`
 - **Details:**
 
   The interface allows request methods
-
-```ts
-type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH'
-```
 
 ### options.type
 
@@ -359,14 +371,42 @@ type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH'
 
 - **Type:** `CookiesOptions | (request: MockRequest) => CookiesOptions | Promise<CookiesOptions>`
 
-```ts
-type CookiesOptions = Record<string, CookieValue>
-type CookieValue = string | [string, SetCookie]
-```
+  ```ts
+  type CookiesOptions = Record<string, CookieValue>
+
+  type CookieValue = string | [string, SetCookie]
+  ```
 
 - **Details:**
 
   Configure response body cookies
+
+### options.ws
+
+- **Type:** `boolean`
+- **Default:** `false`
+- **Details:**
+
+  Enable WebSocket interface simulation
+
+### options.setup
+
+- **Type:** `(wss: WebSocketServer, ctx: WebSocketSetupContext) => void`
+- **Details:**
+
+  Configure Websocket Server
+
+```ts
+interface WebSocketSetupContext {
+  /**
+   * When defining WSS, you may perform some automatic or looping tasks.
+   * However, when hot updating, the plugin will re-execute `setup()`,
+   * which may result in duplicate registration of listening events and looping tasks
+   * such as setTimeout. You can use `onCleanup()` to clear these automatic or looping tasks.
+   */
+  onCleanup: (cleanup: () => void) => void
+}
+```
 
 ### Types
 
@@ -686,6 +726,51 @@ export default defineMock({
 fetch('/api/graphql', {
   method: 'POST',
   body: JSON.stringify({ source: '{ hello }' })
+})
+```
+
+exp:** WebSocket Mock
+
+``` ts
+// ws.mock.ts
+export default defineMock({
+  url: '/socket.io',
+  ws: true,
+  setup(wss, { onCleanup }) {
+    const wsMap = new Map()
+    wss.on('connection', (ws, req) => {
+      const token = req.getCookie('token')
+      wsMap.set(token, ws)
+      ws.on('message', (raw) => {
+        const data = JSON.parse(String(raw))
+        if (data.type === 'ping')
+          return
+        // Broadcast
+        for (const [_token, _ws] of wsMap.entires()) {
+          if (_token !== token)
+            _ws.send(raw)
+        }
+      })
+    })
+    wss.on('error', (err) => {
+      console.error(err)
+    })
+    onCleanup(() => wsMap.clear())
+  }
+})
+```
+
+``` ts
+// app.ts
+const ws = new WebSocket('ws://localhost:5173/socket.io')
+ws.addEventListener('open', () => {
+  setInterval(() => {
+    // heartbeat
+    ws.send(JSON.stringify({ type: 'ping' }))
+  }, 1000)
+}, { once: true })
+ws.addEventListener('message', (raw) => {
+  console.log(raw)
 })
 ```
 
