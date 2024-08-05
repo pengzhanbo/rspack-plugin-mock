@@ -1,3 +1,17 @@
+# [0.3.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.2.0...v0.3.0) (2024-08-05)
+
+
+### Features
+
+* add support for `build` ([2bf1786](https://github.com/pengzhanbo/rspack-plugin-mock/commit/2bf1786a6beefc7a071f2a966dba565ea561bab8))
+
+
+### Performance Improvements
+
+* update deps to latest ([8d55448](https://github.com/pengzhanbo/rspack-plugin-mock/commit/8d554482b33665bb0669635a097d8a6adf16be4e))
+
+
+
 # [0.2.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.1.0...v0.2.0) (2024-08-04)
 
 
