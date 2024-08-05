@@ -428,7 +428,7 @@ export default definePostMock({
 
 ### options.validator
 
-- **类型：** `Validator | (request: MockRequest) => boolean`
+- **Type:** `Validator | (request: MockRequest) => boolean`
 
   ```ts
   interface Validator {
@@ -455,7 +455,7 @@ export default definePostMock({
   }
   ```
 
-- **详情：**
+- **Details:**
 
   Request Validator
 
