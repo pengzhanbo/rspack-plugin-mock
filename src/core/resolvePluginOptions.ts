@@ -1,7 +1,7 @@
 import process from 'node:process'
 import type { RspackPluginInstance } from '@rspack/core'
 import { isBoolean, toArray } from '@pengzhanbo/utils'
-import type { MockServerPluginOptions } from '../types'
+import type { MockServerPluginOptions, ServerBuildOption } from '../types'
 import { type Logger, createLogger } from './logger'
 
 export interface ResolvedCompilerOptions {
@@ -12,10 +12,11 @@ export interface ResolvedCompilerOptions {
   context?: string
 }
 
-export type ResolvePluginOptions = Required<MockServerPluginOptions>
+export type ResolvePluginOptions = Required<Omit<MockServerPluginOptions, 'build'>>
   & ResolvedCompilerOptions
   & {
     logger: Logger
+    build: false | ServerBuildOption
   }
 
 export function resolvePluginOptions(

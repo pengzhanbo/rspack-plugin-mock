@@ -1,5 +1,6 @@
 import process from 'node:process'
 import type { Server } from 'node:http'
+import path from 'node:path'
 import type { Compiler, RspackPluginInstance } from '@rspack/core'
 import rspack from '@rspack/core'
 import { isString, toArray } from '@pengzhanbo/utils'
@@ -13,6 +14,7 @@ import {
 import { createMockCompiler } from './core/mockCompiler'
 import { mockWebSocket } from './core/mockWebsocket'
 import { waitingFor } from './core/utils'
+import { buildMockServer } from './core/build'
 
 const PLUGIN_NAME = 'rspack-plugin-mock'
 
@@ -21,9 +23,9 @@ export class MockServerPlugin implements RspackPluginInstance {
 
   apply(compiler: Compiler) {
     const compilerOptions = compiler.options
+    const options = resolvePluginOptions(compiler, this.options)
 
     if (process.env.NODE_ENV !== 'production') {
-      const options = resolvePluginOptions(compiler, this.options)
       const mockCompiler = createMockCompiler(options)
 
       const mockMiddleware = createMockMiddleware(mockCompiler, options)
@@ -72,6 +74,12 @@ export class MockServerPlugin implements RspackPluginInstance {
 
       compiler.hooks.watchRun.tap(PLUGIN_NAME, () => mockCompiler.run())
       compiler.hooks.watchClose.tap(PLUGIN_NAME, () => mockCompiler.close())
+    }
+    else if (options.build !== false) {
+      compiler.hooks.afterEmit.tap(PLUGIN_NAME, () => buildMockServer(
+        options,
+        compilerOptions.output.path || path.resolve(process.cwd(), 'dist'),
+      ))
     }
   }
 }

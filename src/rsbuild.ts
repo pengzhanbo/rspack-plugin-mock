@@ -1,6 +1,7 @@
 import type * as http from 'node:http'
 import process from 'node:process'
 import { createServer } from 'node:http'
+import path from 'node:path'
 import type { RsbuildConfig, RsbuildPlugin } from '@rsbuild/core'
 import { isArray, toArray } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
@@ -10,41 +11,41 @@ import type { ProxyDetail } from '@rsbuild/core/dist-types/types'
 import type { MockServerPluginOptions } from './types'
 import { rewriteRequest } from './core/requestRecovery'
 import { createMockMiddleware } from './core/mockMiddleware'
-import type { ResolvePluginOptions } from './core/resolvePluginOptions'
 import { resolvePluginOptions } from './core/resolvePluginOptions'
-import type { MockCompiler } from './core/mockCompiler'
 import { createMockCompiler } from './core/mockCompiler'
 import { mockWebSocket } from './core/mockWebsocket'
+import { buildMockServer } from './core/build'
 
 export function pluginMockServer(options: MockServerPluginOptions = {}): RsbuildPlugin {
   return {
     name: 'plugin-mock-server',
 
     setup(api) {
-      if (process.env.NODE_ENV === 'production')
-        return
-
-      let port = 3079
-      api.modifyRsbuildConfig(async (config) => {
-        const defaultPort = (config.server?.port || port) + 1
-        port = await getPortPromise({ port: defaultPort })
+      const rsbuildConfig = api.getRsbuildConfig()
+      const resolvedOptions = resolvePluginOptions(options, {
+        proxies: resolveConfigProxies(rsbuildConfig),
+        alias: {},
+        context: api.context.rootPath,
+        plugins: [new rspack.DefinePlugin(rsbuildConfig.source?.define || {})],
       })
 
-      let mockCompiler: MockCompiler | null = null
-      let resolvedOptions!: ResolvePluginOptions
+      if (process.env.NODE_ENV === 'production') {
+        if (resolvedOptions.build) {
+          api.onAfterBuild(async () => {
+            const config = api.getNormalizedConfig()
+            await buildMockServer(
+              resolvedOptions,
+              path.resolve(process.cwd(), config.output.distPath.root || 'dist'),
+            )
+          })
+        }
+        return
+      }
 
-      api.modifyRsbuildConfig(updateServerProxyConfig)
+      const mockCompiler = createMockCompiler(resolvedOptions)
 
       api.modifyRsbuildConfig((config) => {
-        config.server ??= {}
-        resolvedOptions = resolvePluginOptions(options, {
-          proxies: resolveConfigProxies(config, options.wsPrefix || [], port),
-          alias: {},
-          context: api.context.rootPath,
-          plugins: [new rspack.DefinePlugin(config.source?.define || {})],
-        })
-
-        mockCompiler = createMockCompiler(resolvedOptions)
+        updateServerProxyConfigByHttpMock(config)
         const mockMiddleware = createMockMiddleware(mockCompiler, resolvedOptions)
 
         config.dev ??= {}
@@ -54,32 +55,41 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
         })
       })
 
-      api.onAfterCreateCompiler(({ compiler }) => {
-        if ('compilers' in compiler) {
-          compiler.compilers.forEach((compiler) => {
-            mockCompiler?.updateAlias(compiler.options.resolve?.alias || {})
-          })
-        }
-        else {
-          mockCompiler?.updateAlias(compiler.options.resolve?.alias || {})
-        }
-      })
+      let port = 3079
+      const shouldMockWs = toArray(resolvedOptions.wsPrefix).length > 0
+      if (shouldMockWs) {
+        api.modifyRsbuildConfig(async (config) => {
+          const defaultPort = (config.server?.port || port) + 1
+          port = await getPortPromise({ port: defaultPort })
+          updateServerProxyConfigByWSMock(config, options.wsPrefix || [], port)
+        })
+      }
 
       let server: http.Server
       function startMockServer() {
-        if (!mockCompiler)
-          return
-
         mockCompiler.run()
-        server = createServer()
-        mockWebSocket(mockCompiler, server, resolvedOptions)
-        server.listen(port)
+        if (shouldMockWs) {
+          server = createServer()
+          mockWebSocket(mockCompiler, server, resolvedOptions)
+          server.listen(port)
+        }
       }
 
       function close() {
-        mockCompiler?.close()
+        mockCompiler.close()
         server?.close()
       }
+
+      api.onAfterCreateCompiler(({ compiler }) => {
+        if ('compilers' in compiler) {
+          compiler.compilers.forEach((compiler) => {
+            mockCompiler.updateAlias(compiler.options.resolve?.alias || {})
+          })
+        }
+        else {
+          mockCompiler.updateAlias(compiler.options.resolve?.alias || {})
+        }
+      })
 
       api.onAfterStartDevServer(startMockServer)
       api.onAfterStartProdServer(startMockServer)
@@ -88,7 +98,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
   }
 }
 
-function updateServerProxyConfig(config: RsbuildConfig) {
+function updateServerProxyConfigByHttpMock(config: RsbuildConfig) {
   if (!config.server?.proxy)
     return
 
@@ -153,15 +163,9 @@ function updateServerProxyConfig(config: RsbuildConfig) {
   }
 }
 
-type Proxies = (string | ((pathname: string, req: any) => boolean))[]
-
-function resolveConfigProxies(
-  config: RsbuildConfig,
-  wsPrefix: string | string[],
-  port: number,
-): Proxies {
+function updateServerProxyConfigByWSMock(config: RsbuildConfig, wsPrefix: string | string[], port: number) {
+  config.server ??= {}
   const proxy = (config.server!.proxy ??= {})
-  const proxies: Proxies = []
   const wsTarget = `ws://localhost:${port}`
   const prefix = toArray(wsPrefix)
   const has = (context: unknown) => typeof context === 'string' && prefix.includes(context)
@@ -179,42 +183,55 @@ function resolveConfigProxies(
 
   if (isArray(proxy)) {
     for (const item of proxy) {
-      if (typeof item !== 'function' && item.context) {
-        if (!item.ws) {
-          proxies.push(...toArray(item.context))
-        }
-        else {
-          updateProxy(item)
-        }
+      if (typeof item !== 'function' && item.context && item.ws) {
+        updateProxy(item)
       }
     }
-    prefix.filter(context => !used.has(context)).forEach((context) => {
-      proxy.push({ context, target: wsTarget })
-    })
+    prefix.filter(context => !used.has(context))
+      .forEach(context => proxy.push({ context, target: wsTarget }))
   }
   else if ('target' in proxy) {
-    if (!proxy.ws) {
-      proxies.push(...toArray(proxy.context as any))
-    }
-    else {
+    if (proxy.ws) {
       updateProxy(proxy)
       const list = (config.server!.proxy = [proxy])
-      prefix.filter(context => !used.has(context)).forEach((context) => {
-        list.push({ context, target: wsTarget })
-      })
+      prefix.filter(context => !used.has(context))
+        .forEach(context => list.push({ context, target: wsTarget }))
     }
   }
   else {
-    Object.entries(proxy).forEach(([context, opt]) => {
-      if (typeof opt === 'string' || !opt.ws) {
-        proxies.push(context)
-      }
+    Object.entries(proxy).forEach(([, opt]) => {
       if (typeof opt !== 'string' && opt.ws) {
         updateProxy(opt)
       }
     })
     prefix.filter(context => !used.has(context)).forEach((context) => {
       (proxy as Record<string, ProxyDetail>)[context] = { target: wsTarget, ws: true }
+    })
+  }
+}
+
+type Proxies = (string | ((pathname: string, req: any) => boolean))[]
+
+function resolveConfigProxies(config: RsbuildConfig): Proxies {
+  config.server ??= {}
+  const proxy = (config.server!.proxy ??= {})
+  const proxies: Proxies = []
+
+  if (isArray(proxy)) {
+    for (const item of proxy) {
+      if (typeof item !== 'function' && item.context && !item.ws) {
+        proxies.push(...toArray(item.context))
+      }
+    }
+  }
+  else if ('target' in proxy) {
+    if (!proxy.ws)
+      proxies.push(...toArray(proxy.context as any))
+  }
+  else {
+    Object.entries(proxy).forEach(([context, opt]) => {
+      if (typeof opt === 'string' || !opt.ws)
+        proxies.push(context)
     })
   }
   return proxies

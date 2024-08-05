@@ -7,6 +7,10 @@ import { URL, fileURLToPath } from 'node:url'
 import os from 'node:os'
 import Debug from 'debug'
 import { match } from 'path-to-regexp'
+import { Volume, createFsFromVolume } from 'memfs'
+
+export const packageDir = getDirname(import.meta.url)
+export const vfs = createFsFromVolume(new Volume())
 
 export function isStream(stream: unknown): stream is Stream {
   return stream !== null
