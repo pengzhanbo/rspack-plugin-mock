@@ -1,3 +1,12 @@
+## [0.3.2](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.1...v0.3.2) (2024-08-05)
+
+
+### Performance Improvements
+
+* improve `build` output ([62fe057](https://github.com/pengzhanbo/rspack-plugin-mock/commit/62fe05799f392414f6f95f13455f755bd0ef676d))
+
+
+
 ## [0.3.1](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.0...v0.3.1) (2024-08-05)
 
 
