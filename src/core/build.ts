@@ -48,6 +48,7 @@ export async function buildMockServer(
 function generatePackageJson(options: ResolvePluginOptions, externals: string[]): string {
   const deps = getHostDependencies(options.cwd)
   const { name, version } = getPluginPackageInfo()
+  const exclude: string[] = [name, 'connect', 'cors']
   const mockPkg = {
     name: 'mock-server',
     type: 'module',
@@ -60,7 +61,7 @@ function generatePackageJson(options: ResolvePluginOptions, externals: string[])
       cors: '^2.8.5',
     } as Record<string, string>,
   }
-  externals.forEach((dep) => {
+  externals.filter(dep => !exclude.includes(dep)).forEach((dep) => {
     mockPkg.dependencies[dep] = deps[dep] || 'latest'
   })
   return JSON.stringify(mockPkg, null, 2)
@@ -84,7 +85,7 @@ import {
   mockWebSocket,
   transformMockData,
   transformRawData
-} from 'rspack-plugin-mock';
+} from 'rspack-plugin-mock/server';
 import rawData from './mock-data.js';
 
 const app = connect();
