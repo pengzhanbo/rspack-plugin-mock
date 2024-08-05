@@ -6,6 +6,11 @@
   "description": "inject api mock server to development server",
   "author": "pengzhanbo <q942450674@outlook.com> (https://github.com/pengzhanbo)",
   "license": "MIT",
+  "homepage": "https://github.com/pengzhanbo/rspack-plugin-mock",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pengzhanbo/rspack-plugin-mock"
+  },
   "keywords": [
     "mock",
     "mock server",
