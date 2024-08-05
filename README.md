@@ -1,16 +1,20 @@
 # rspack-plugin-mock
 
-[rspack](https://rspack.dev) and [rsbuild](https://rsbuild.dev) plugin for API mock dev server.
+[Rspack](https://rspack.dev) and [Rsbuild](https://rsbuild.dev) plugin for API mock dev server.
 
 Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent with [vite-plugin-mock-dev-server](https://github.com/pengzhanbo/vite-plugin-mock-dev-server).
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/rspack-plugin-mock"><img alt="npm" src="https://img.shields.io/npm/v/rspack-plugin-mock?style=flat-square"></a>
-  <img alt="node-current" src="https://img.shields.io/node/v/rspack-plugin-mock?style=flat-square">
-  <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rspack/core?style=flat-square">
-  <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rsbuild/core?style=flat-square">
-  <img alt="npm" src="https://img.shields.io/npm/dm/rspack-plugin-mock?style=flat-square">
-  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/pengzhanbo/rspack-plugin-mock/lint.yml?style=flat-square">
+  <a href="https://www.npmjs.com/package/rspack-plugin-mock"><img alt="npm" src="https://img.shields.io/npm/v/rspack-plugin-mock?style=flat-square&colorA=564341&colorB=EDED91"></a>
+  <img alt="node-current" src="https://img.shields.io/node/v/rspack-plugin-mock?style=flat-square&colorA=564341&colorB=EDED91">
+  <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91">
+  <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rsbuild/core?style=flat-square&colorA=564341&colorB=EDED91">
+  <img alt="npm" src="https://img.shields.io/npm/dm/rspack-plugin-mock?style=flat-square&colorA=564341&colorB=EDED91">
+  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/pengzhanbo/rspack-plugin-mock/lint.yml?style=flat-square&colorA=564341&colorB=EDED91">
+</p>
+
+<p align="center">
+<span>English</span> | <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
 ## Features
@@ -20,7 +24,7 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 - 💡 ESModule/commonjs.
 - 🦾 Typescript.
 - 🔥 HMR
-- 🏷 Support `.[cm]js`/ `.ts` /`.json` / `.json5`.
+- 🏷 Support `.[cm]?js`/ `.ts` /`.json` / `.json5`.
 - 📦 Auto import mock file.
 - 🎨 Support any lib, like `mockjs`, or do not use it.
 - 📥 Path rule matching, request parameter matching.
@@ -32,10 +36,9 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 - 📤 Support `multipart` content-type, mock upload file.
 - 📥 Support mock download file.
 - ⚜️ Support `WebSocket Mock`
+- 🗂 Support building small independent deployable mock services.
 
-## Usage
-
-### Install
+## Install
 
 ```sh
 # npm
@@ -46,7 +49,7 @@ yarn add rspack-plugin-mock
 pnpm add -D rspack-plugin-mock
 ```
 
-### Configuration
+### Usage
 
 **In Rspack**
 
@@ -89,7 +92,7 @@ export default defineConfig({
 
 ### Edit Mock file
 
-By default, write mock data in the mock directory of your project's root directory:
+By default, write mock data in the `mock` directory of your project's root directory:
 
 `mock/**/*.mock.ts` :
 
@@ -278,6 +281,36 @@ export default definePostMock({
 
   Configure to [co-body](https://github.com/cojs/co-body#options)
 
+## options.build
+
+- **Type:** `boolean | ServerBuildOption`
+
+  ```ts
+  interface ServerBuildOption {
+    /**
+     * Service startup port
+     * @default 8080
+     */
+    serverPort?: number
+    /**
+     * Service application output directory
+     * @default 'mockServer'
+     */
+    dist?: string
+
+    /**
+     * Service application log level
+     * @default 'error'
+     */
+    log?: LogLevel
+  }
+  ```
+
+- **Default:** `false`
+- **Details:**
+
+  When you need to build a small mock service, you can configure this option.
+
 ## Mock Options
 
 ### options.url
@@ -392,6 +425,47 @@ export default definePostMock({
 - **Details:**
 
   Configure response body cookies
+
+### options.validator
+
+- **类型：** `Validator | (request: MockRequest) => boolean`
+
+  ```ts
+  interface Validator {
+    /**
+     * 请求地址中位于 `?` 后面的 queryString，已解析为 json
+     */
+    query: Record<string, any>
+    /**
+     * 请求 referer 中位于 `?` 后面的 queryString
+     */
+    refererQuery: Record<string, any>
+    /**
+     * 请求体中 body 数据
+     */
+    body: Record<string, any>
+    /**
+     * 请求地址中，`/api/id/:id` 解析后的 params 参数
+     */
+    params: Record<string, any>
+    /**
+     * 请求体中 headers
+     */
+    headers: Headers
+  }
+  ```
+
+- **详情：**
+
+  Request Validator
+
+  Sometimes, for the same API request, data needs to be returned based
+  on different request parameters.
+
+  However, if all of this is written in a single mock's body or response,
+  the content can become cumbersome and difficult to manage.
+  The function of a validator allows you to configure multiple mocks with
+  the same URL simultaneously and determine which mock should be used through validation.
 
 ### options.ws
 
@@ -786,7 +860,28 @@ ws.addEventListener('message', (raw) => {
 })
 ```
 
-## Redirect
+## Mock Services
+
+In some scenarios, it may be necessary to use the data provided by mock services for display purposes, but the project may have already been packaged, built and deployed without support from `rspack/rsbuild` and this plugin's mock service. Since this plugin supports importing various node modules in mock files at the design stage, the mock file cannot be inline into client build code.
+
+The plugin support for builds a small independent mock service application that can be deployed to relevant environments during `production build`. This can then be forwarded through other HTTP servers like Nginx to actual ports for mock support.
+
+The default output is built into the directory dist/mockServer, generating files as follows:
+
+```sh
+./mockServer
+├── index.js
+├── mock-data.js
+└── package.json
+```
+
+In this directory, execute `npm install` to install dependencies, and then execute npm start to start the mock server.
+
+The default port is `8080`.
+
+You can access related mock interfaces through `localhost:8080/`.
+
+## Links
 
 - [rspack](https://rspack.dev)
 - [rsbuild](https://rsbuild.dev)
@@ -794,4 +889,4 @@ ws.addEventListener('message', (raw) => {
 
 ## License
 
-[MIT License](/LICENSE)
+rspack-plugin-mock is licensed under the [MIT License](./LICENSE)
