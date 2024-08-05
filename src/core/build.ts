@@ -96,12 +96,15 @@ const wsProxies = ${JSON.stringify(toArray(wsPrefix))};
 const cookiesOptions = ${JSON.stringify(cookiesOptions)};
 const bodyParserOptions = ${JSON.stringify(bodyParserOptions)};
 const priority = ${JSON.stringify(priority)};
-const data = { mockData: transformMockData(transformRawData(rawData)) };
+const mockConfig = { 
+  mockData: transformMockData(transformRawData(rawData)),
+  on: () => {},
+};
 
-mockWebSocket(data, server, { wsProxies, cookiesOptions, logger });
+mockWebSocket(mockConfig, server, { wsProxies, cookiesOptions, logger });
 
 app.use(corsMiddleware());
-app.use(baseMiddleware(data, {
+app.use(baseMiddleware(mockConfig, {
   formidableOptions: { multiples: true },
   proxies,
   priority,
