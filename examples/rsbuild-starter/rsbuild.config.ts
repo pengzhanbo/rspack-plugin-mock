@@ -13,6 +13,7 @@ export default defineConfig({
   plugins: [
     pluginMockServer({
       wsPrefix: '/socket.io',
+      build: true,
     }),
   ],
 })
