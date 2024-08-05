@@ -433,23 +433,23 @@ export default definePostMock({
   ```ts
   interface Validator {
     /**
-     * 请求地址中位于 `?` 后面的 queryString，已解析为 json
+     * The query string located after `?` in the request address has been parsed into JSON.
      */
     query: Record<string, any>
     /**
-     * 请求 referer 中位于 `?` 后面的 queryString
+     * The queryString located after `?` in the referer request has been parsed as JSON.
      */
     refererQuery: Record<string, any>
     /**
-     * 请求体中 body 数据
+     * Body data in the request
      */
     body: Record<string, any>
     /**
-     * 请求地址中，`/api/id/:id` 解析后的 params 参数
+     * The params parameter parsed from the `/api/id/:id` in the request address.
      */
     params: Record<string, any>
     /**
-     * 请求体中 headers
+     * headers data in the request
      */
     headers: Headers
   }
