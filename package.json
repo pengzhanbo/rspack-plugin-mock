@@ -19,6 +19,9 @@
     "rspack-plugin",
     "rsbuild-plugin"
   ],
+  "imports": {
+    "#json5-loader": "./dist/json5-loader.cjs"
+  },
   "exports": {
     ".": {
       "import": {
