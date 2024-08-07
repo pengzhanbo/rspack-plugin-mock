@@ -1,3 +1,12 @@
+## [0.3.3](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.2...v0.3.3) (2024-08-07)
+
+
+### Features
+
+* improve `json5-loader` imports ([5c4e08a](https://github.com/pengzhanbo/rspack-plugin-mock/commit/5c4e08a92e38317c57f67a2cf8a8500c732d7bb4))
+
+
+
 ## [0.3.2](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.1...v0.3.2) (2024-08-05)
 
 
