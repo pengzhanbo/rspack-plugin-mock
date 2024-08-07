@@ -1,9 +1,11 @@
-import path from 'node:path'
+import { createRequire } from 'node:module'
 import type { Compiler, RspackOptions, RspackPluginInstance } from '@rspack/core'
 import * as rspackCore from '@rspack/core'
 import color from 'picocolors'
 import isCore from 'is-core-module'
-import { packageDir, vfs } from './utils'
+import { vfs } from './utils'
+
+const require = createRequire(import.meta.url)
 
 export interface CompilerOptions {
   cwd: string
@@ -23,8 +25,14 @@ export function createCompiler(
 
   async function handler(err: Error | null, stats?: rspackCore.Stats) {
     const name = '[rspack:mock]'
-    const logError = stats?.compilation.getLogger(name).error
-      || ((...args: string[]) => console.error(color.red(name), ...args))
+    const logError = (...args: any[]) => {
+      if (stats) {
+        stats.compilation.getLogger(name).error(...args)
+      }
+      else {
+        console.error(color.red(name), ...args)
+      }
+    }
 
     if (err) {
       logError(err.stack || err)
@@ -121,7 +129,7 @@ function resolveRspackOptions({
       rules: [
         {
           test: /\.json5?$/,
-          loader: path.join(packageDir, 'json5-loader.cjs'),
+          loader: require.resolve('#json5-loader'),
           type: 'javascript/auto',
         },
         {
