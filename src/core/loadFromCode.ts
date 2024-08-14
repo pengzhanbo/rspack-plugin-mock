@@ -1,5 +1,6 @@
 import path from 'node:path'
 import fs, { promises as fsp } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 
 interface LoadFromCodeOptions {
   filepath: string
@@ -18,9 +19,10 @@ export async function loadFromCode<T = any>({
   const fileBase = `${filepath}.timestamp-${Date.now()}`
   const ext = isESM ? '.mjs' : '.cjs'
   const fileNameTmp = `${fileBase}${ext}`
+  const fileUrl = pathToFileURL(fileNameTmp).toString()
   await fsp.writeFile(fileNameTmp, code, 'utf8')
   try {
-    const result = await import(fileNameTmp)
+    const result = await import(fileUrl)
     return result.default || result
   }
   finally {
