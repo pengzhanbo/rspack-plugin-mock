@@ -1,3 +1,12 @@
+## [0.3.4](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.3...v0.3.4) (2024-08-14)
+
+
+### Bug Fixes
+
+* incorrect filepath resolution during `dynamic import` ([a35ec4f](https://github.com/pengzhanbo/rspack-plugin-mock/commit/a35ec4fb6b3a5fbac790325ecc98f2a528305d91))
+
+
+
 ## [0.3.3](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.2...v0.3.3) (2024-08-07)
 
 
