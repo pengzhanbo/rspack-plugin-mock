@@ -7,7 +7,7 @@ import { isArray, toArray } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
 import color from 'picocolors'
 import { getPortPromise } from 'portfinder'
-import type { ProxyDetail } from '@rsbuild/core/dist-types/types'
+import type { ProxyOptions } from '@rsbuild/core/dist-types/types'
 import type { MockServerPluginOptions } from './types'
 import { rewriteRequest } from './core/requestRecovery'
 import { createMockMiddleware } from './core/mockMiddleware'
@@ -98,19 +98,15 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
   }
 }
 
+function onProxyError(err: Error, _req: http.IncomingMessage, res: http.ServerResponse) {
+  console.error(color.red(err?.stack || err.message))
+  res.statusCode = 500
+  res.end()
+}
+
 function updateServerProxyConfigByHttpMock(config: RsbuildConfig) {
   if (!config.server?.proxy)
     return
-
-  const onProxyError = (
-    err: Error,
-    _req: http.IncomingMessage,
-    res: http.ServerResponse,
-  ) => {
-    console.error(color.red(err?.stack || err.message))
-    res.statusCode = 500
-    res.end()
-  }
 
   if (isArray(config.server.proxy)) {
     config.server.proxy = config.server.proxy.map((item) => {
@@ -171,7 +167,7 @@ function updateServerProxyConfigByWSMock(config: RsbuildConfig, wsPrefix: string
   const has = (context: unknown) => typeof context === 'string' && prefix.includes(context)
   const used = new Set<string>()
 
-  function updateProxy(item: ProxyDetail) {
+  function updateProxy(item: ProxyOptions) {
     if (isArray(item.context)) {
       item.context = item.context.filter(has)
     }
@@ -205,7 +201,7 @@ function updateServerProxyConfigByWSMock(config: RsbuildConfig, wsPrefix: string
       }
     })
     prefix.filter(context => !used.has(context)).forEach((context) => {
-      (proxy as Record<string, ProxyDetail>)[context] = { target: wsTarget, ws: true }
+      (proxy as Record<string, ProxyOptions>)[context] = { target: wsTarget, ws: true }
     })
   }
 }

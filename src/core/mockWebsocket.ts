@@ -59,14 +59,6 @@ export function mockWebSocket(
     return wssMap
   }
 
-  const getWss = (wssMap: WSSMap, pathname: string): WebSocketServer => {
-    let wss = wssMap.get(pathname)
-    if (!wss)
-      wssMap.set(pathname, (wss = new WebSocketServer({ noServer: true })))
-
-    return wss
-  }
-
   const addHmr = (filepath: string, mockUrl: string) => {
     let urlList = hmrMap.get(filepath)
     if (!urlList)
@@ -102,20 +94,6 @@ export function mockWebSocket(
         mock.log,
       )
     }
-  }
-
-  const emitConnection = (
-    wss: WebSocketServer,
-    ws: WebSocket,
-    req: MockRequest,
-    connectionList: Connection[],
-  ) => {
-    wss.emit('connection', ws, req)
-    ws.on('close', () => {
-      const i = connectionList.findIndex(item => item.ws === ws)
-      if (i !== -1)
-        connectionList.splice(i, 1)
-    })
   }
 
   const restartWss = (
@@ -231,6 +209,23 @@ export function mockWebSocket(
     }
     poolMap.clear()
     hmrMap.clear()
+  })
+}
+
+function getWss(wssMap: WSSMap, pathname: string): WebSocketServer {
+  let wss = wssMap.get(pathname)
+  if (!wss)
+    wssMap.set(pathname, (wss = new WebSocketServer({ noServer: true })))
+
+  return wss
+}
+
+function emitConnection(wss: WebSocketServer, ws: WebSocket, req: MockRequest, connectionList: Connection[]) {
+  wss.emit('connection', ws, req)
+  ws.on('close', () => {
+    const i = connectionList.findIndex(item => item.ws === ws)
+    if (i !== -1)
+      connectionList.splice(i, 1)
   })
 }
 
