@@ -105,6 +105,10 @@ function resolveRspackOptions({
   watch = false,
 }: CompilerOptions): RspackOptions {
   const targets = ['node >= 18.0.0']
+  if (alias && '@swc/helpers' in alias) {
+    delete alias['@swc/helpers']
+  }
+
   return {
     mode: 'production',
     context: cwd,
@@ -112,7 +116,6 @@ function resolveRspackOptions({
     watch,
     target: 'node18.0',
     externalsType: isEsm ? 'module' : 'commonjs2',
-    externals: /^[^./].*/,
     resolve: {
       alias,
       extensions: ['.js', '.ts', '.cjs', '.mjs', '.json5', '.json'],
