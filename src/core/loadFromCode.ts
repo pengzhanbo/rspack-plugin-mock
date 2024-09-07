@@ -16,18 +16,17 @@ export async function loadFromCode<T = any>({
   cwd,
 }: LoadFromCodeOptions): Promise<T> {
   filepath = path.resolve(cwd, filepath)
-  const fileBase = `${filepath}.timestamp-${Date.now()}`
   const ext = isESM ? '.mjs' : '.cjs'
-  const fileNameTmp = `${fileBase}${ext}`
-  const fileUrl = pathToFileURL(fileNameTmp).toString()
-  await fsp.writeFile(fileNameTmp, code, 'utf8')
+  const filepathTmp = `${filepath}.timestamp-${Date.now()}${ext}`
+  const file = pathToFileURL(filepathTmp).toString()
+  await fsp.writeFile(filepathTmp, code, 'utf8')
   try {
-    const result = await import(fileUrl)
-    return result.default || result
+    const mod = await import(file)
+    return mod.default || mod
   }
   finally {
     try {
-      fs.unlinkSync(fileNameTmp)
+      fs.unlinkSync(filepathTmp)
     }
     catch {}
   }
