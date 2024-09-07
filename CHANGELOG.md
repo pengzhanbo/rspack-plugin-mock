@@ -1,3 +1,22 @@
+# [0.4.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.4...v0.4.0) (2024-09-07)
+
+
+### Bug Fixes
+
+* incorrect resolve `alias` ([06e05d9](https://github.com/pengzhanbo/rspack-plugin-mock/commit/06e05d9d8cab4ec4766659c8bb04b0d3d738065d))
+
+
+### Features
+
+* add `defineMockData` ([ca3126d](https://github.com/pengzhanbo/rspack-plugin-mock/commit/ca3126d5f86e4b0d5b7758fa847bc16749eb5333))
+
+
+### Performance Improvements
+
+* update deps to latest ([aa2c59b](https://github.com/pengzhanbo/rspack-plugin-mock/commit/aa2c59b6d5d9f2e3ed51379cde3be56b0a5a4f89))
+
+
+
 ## [0.3.4](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.3...v0.3.4) (2024-08-14)
 
 
