@@ -1,5 +1,7 @@
 // @ts-check
 
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { rspack } from '@rspack/core'
 import { MockServerPlugin } from 'rspack-plugin-mock'
 
@@ -13,7 +15,7 @@ export default {
   resolve: {
     extensions: ['.js', '.ts'],
     alias: {
-      '@': './src',
+      '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
     },
   },
   devServer: {
