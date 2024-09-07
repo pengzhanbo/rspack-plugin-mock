@@ -20,9 +20,7 @@ export default defineConfig([{
   dts: false,
 }, {
   ...shared,
-  entry: [
-    'src/{index,rsbuild,helper,server}.ts',
-  ],
+  entry: ['src/{index,rsbuild,helper,server}.ts'],
   format: ['cjs', 'esm'],
   onSuccess: async () => {
     const files = await fg('dist/chunk-*.cjs', { cwd: process.cwd() })
