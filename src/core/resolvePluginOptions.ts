@@ -1,8 +1,8 @@
-import process from 'node:process'
 import type { RspackPluginInstance } from '@rspack/core'
-import { isBoolean, toArray } from '@pengzhanbo/utils'
 import type { MockServerPluginOptions, ServerBuildOption } from '../types'
-import { type Logger, createLogger } from './logger'
+import process from 'node:process'
+import { isBoolean, toArray } from '@pengzhanbo/utils'
+import { createLogger, type Logger } from './logger'
 
 export interface ResolvedCompilerOptions {
   alias: Record<string, false | string | (string | false)[]>

@@ -1,7 +1,7 @@
 import type * as http from 'node:http'
+import type { BodyParserOptions } from '../types'
 import bodyParser from 'co-body'
 import formidable from 'formidable'
-import type { BodyParserOptions } from '../types'
 
 export async function parseReqBody(
   req: http.IncomingMessage,

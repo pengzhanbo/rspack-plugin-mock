@@ -1,4 +1,4 @@
-export * from './rspack'
+export * from './core/mockCompiler'
 export * from './core/mockMiddleware'
 export * from './core/mockWebsocket'
-export * from './core/mockCompiler'
+export * from './rspack'

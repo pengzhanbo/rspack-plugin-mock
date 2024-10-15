@@ -1,8 +1,8 @@
-import { createRequire } from 'node:module'
 import type { Compiler, RspackOptions, RspackPluginInstance } from '@rspack/core'
+import { createRequire } from 'node:module'
 import * as rspackCore from '@rspack/core'
-import color from 'picocolors'
 import isCore from 'is-core-module'
+import color from 'picocolors'
 import { vfs } from './utils'
 
 const require = createRequire(import.meta.url)
@@ -68,7 +68,7 @@ export function createCompiler(
   const compiler = rspackCore.rspack(rspackOptions, isWatch ? handler : undefined)
 
   if (compiler)
-    compiler.outputFileSystem = vfs
+    compiler.outputFileSystem = vfs as unknown as rspackCore.OutputFileSystem
 
   if (!isWatch) {
     compiler?.run(async (...args) => {

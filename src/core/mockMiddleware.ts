@@ -1,11 +1,11 @@
-import type http from 'node:http'
 import type { RspackOptionsNormalized, RspackPluginInstance } from '@rspack/core'
+import type http from 'node:http'
+import type { MockCompiler } from './mockCompiler'
+import type { ResolvePluginOptions } from './resolvePluginOptions'
 import cors, { type CorsOptions } from 'cors'
 import { pathToRegexp } from 'path-to-regexp'
-import type { ResolvePluginOptions } from './resolvePluginOptions'
-import type { MockCompiler } from './mockCompiler'
-import { doesProxyContextMatchUrl, urlParse } from './utils'
 import { baseMiddleware } from './baseMiddleware'
+import { doesProxyContextMatchUrl, urlParse } from './utils'
 
 export interface MiddlewareOptions {
   alias: Record<string, false | string | (string | false)[]>

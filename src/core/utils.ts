@@ -1,13 +1,13 @@
-import fs from 'node:fs'
-import path from 'node:path'
 import type http from 'node:http'
-import { parse as queryParse } from 'node:querystring'
 import type { Readable, Stream } from 'node:stream'
-import { URL, fileURLToPath } from 'node:url'
+import fs from 'node:fs'
 import os from 'node:os'
+import path from 'node:path'
+import { parse as queryParse } from 'node:querystring'
+import { fileURLToPath, URL } from 'node:url'
 import Debug from 'debug'
+import { createFsFromVolume, Volume } from 'memfs'
 import { match } from 'path-to-regexp'
-import { Volume, createFsFromVolume } from 'memfs'
 
 export const packageDir = getDirname(import.meta.url)
 export const vfs = createFsFromVolume(new Volume())

@@ -1,5 +1,18 @@
-import { Buffer } from 'node:buffer'
 import type * as http from 'node:http'
+import type {
+  ExtraRequest,
+  Method,
+  MockHttpItem,
+  MockOptions,
+  MockRequest,
+  MockResponse,
+  MockServerPluginOptions,
+  ResponseBody,
+} from '../types'
+import type { Logger } from './logger'
+import type { MockCompiler } from './mockCompiler'
+import type { Middleware } from './mockMiddleware'
+import { Buffer } from 'node:buffer'
 import {
   isArray,
   isEmptyObject,
@@ -13,19 +26,7 @@ import HTTP_STATUS from 'http-status'
 import * as mime from 'mime-types'
 import { pathToRegexp } from 'path-to-regexp'
 import colors from 'picocolors'
-import type {
-  ExtraRequest,
-  Method,
-  MockHttpItem,
-  MockOptions,
-  MockRequest,
-  MockResponse,
-  MockServerPluginOptions,
-  ResponseBody,
-} from '../types'
-import type { Logger } from './logger'
 import { matchingWeight } from './matchingWeight'
-import type { MockCompiler } from './mockCompiler'
 import { parseReqBody } from './parseReqBody'
 import { collectRequest } from './requestRecovery'
 import {
@@ -35,7 +36,6 @@ import {
   urlParse,
 } from './utils'
 import { validate } from './validator'
-import type { Middleware } from './mockMiddleware'
 
 export interface BaseMiddlewareOptions {
   formidableOptions: MockServerPluginOptions['formidableOptions']

@@ -1,15 +1,15 @@
+import type { ServerBuildOption } from '../types'
+import type { ResolvePluginOptions } from './resolvePluginOptions'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
-import fg from 'fast-glob'
-import { createFilter } from '@rollup/pluginutils'
-import color from 'picocolors'
 import { toArray } from '@pengzhanbo/utils'
-import type { ServerBuildOption } from '../types'
-import { lookupFile, normalizePath, packageDir } from './utils'
-import type { ResolvePluginOptions } from './resolvePluginOptions'
+import { createFilter } from '@rollup/pluginutils'
+import fg from 'fast-glob'
+import color from 'picocolors'
 import { transformWithRspack } from './createRspackCompiler'
+import { lookupFile, normalizePath, packageDir } from './utils'
 
 export async function buildMockServer(
   options: ResolvePluginOptions,

@@ -1,5 +1,5 @@
-import path from 'node:path'
 import fs, { promises as fsp } from 'node:fs'
+import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 interface LoadFromCodeOptions {

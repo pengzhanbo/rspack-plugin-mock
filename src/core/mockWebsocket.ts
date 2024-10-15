@@ -1,10 +1,6 @@
 import type { Server } from 'node:http'
 import type { Http2SecureServer } from 'node:http2'
-import Cookies from 'cookies'
-import { pathToRegexp } from 'path-to-regexp'
-import colors from 'picocolors'
 import type { WebSocket } from 'ws'
-import { WebSocketServer } from 'ws'
 import type {
   MockRequest,
   MockServerPluginOptions,
@@ -13,6 +9,10 @@ import type {
 } from '../types'
 import type { Logger } from './logger'
 import type { MockCompiler } from './mockCompiler'
+import Cookies from 'cookies'
+import { pathToRegexp } from 'path-to-regexp'
+import colors from 'picocolors'
+import { WebSocketServer } from 'ws'
 import { doesProxyContextMatchUrl, parseParams, urlParse } from './utils'
 
 type PoolMap = Map<string, WSSMap>

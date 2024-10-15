@@ -1,3 +1,4 @@
+import type { MockHttpItem, MockOptions, MockWebsocketItem } from '../types'
 import {
   isEmptyObject,
   isFunction,
@@ -5,7 +6,6 @@ import {
   sortBy,
   toArray,
 } from '@pengzhanbo/utils'
-import type { MockHttpItem, MockOptions, MockWebsocketItem } from '../types'
 import { urlParse } from './utils'
 import { isObjectSubset } from './validator'
 
