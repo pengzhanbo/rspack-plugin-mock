@@ -14,11 +14,12 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:8080',
+      '/api/': 'http://localhost:8080',
     },
   },
   plugins: [
     pluginMockServer({
+      prefix: '/api-dev/',
       wsPrefix: '/socket.io',
       build: true,
     }),

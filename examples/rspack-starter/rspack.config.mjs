@@ -21,7 +21,7 @@ export default {
   devServer: {
     proxy: [
       {
-        context: '/api',
+        context: '/api/',
         target: 'http://localhost:3000',
       },
     ],
@@ -64,6 +64,7 @@ export default {
   },
   plugins: [
     new MockServerPlugin({
+      prefix: '/api-dev/',
       wsPrefix: '/socket.io',
       build: true,
     }),
