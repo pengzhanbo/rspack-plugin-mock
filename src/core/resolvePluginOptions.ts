@@ -41,6 +41,7 @@ export function resolvePluginOptions(
     'rspack:mock',
     isBoolean(log) ? (log ? 'info' : 'error') : log,
   )
+  prefix = toArray(prefix)
 
   return {
     prefix,
@@ -70,7 +71,7 @@ export function resolvePluginOptions(
       : false,
     alias,
     plugins,
-    proxies,
+    proxies: [...proxies, ...prefix],
     wsProxies: toArray(wsPrefix),
     logger,
   }
