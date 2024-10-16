@@ -1,3 +1,17 @@
+## [0.4.1](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.4.0...v0.4.1) (2024-10-16)
+
+
+### Bug Fixes
+
+* fix the ineffective `prefix`, close [#4](https://github.com/pengzhanbo/rspack-plugin-mock/issues/4) ([292275c](https://github.com/pengzhanbo/rspack-plugin-mock/commit/292275cb1403de8075ea4bbb213b05c8f95c8285))
+
+
+### Performance Improvements
+
+* update deps to latest ([28d7408](https://github.com/pengzhanbo/rspack-plugin-mock/commit/28d74082414b3600f819cb51e18a61476297aa35))
+
+
+
 # [0.4.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.3.4...v0.4.0) (2024-09-07)
 
 
