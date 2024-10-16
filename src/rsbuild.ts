@@ -29,6 +29,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
         plugins: [new rspack.DefinePlugin(rsbuildConfig.source?.define || {})],
       })
 
+      // 在构建生产包时，额外输出一个可部署的 mock 服务
       if (process.env.NODE_ENV === 'production') {
         if (resolvedOptions.build) {
           api.onAfterBuild(async () => {

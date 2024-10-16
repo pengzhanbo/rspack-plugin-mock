@@ -30,7 +30,7 @@ export class MockServerPlugin implements RspackPluginInstance {
 
       const mockMiddleware = createMockMiddleware(mockCompiler, options)
       const setupMiddlewares = compilerOptions.devServer?.setupMiddlewares
-      const waitServer = waitingFor<Server>((server) => {
+      const waitServerForMockWebSocket = waitingFor<Server>((server) => {
         mockWebSocket(mockCompiler, server, options)
       })
 
@@ -47,29 +47,33 @@ export class MockServerPlugin implements RspackPluginInstance {
            * 在 @rspack/dev-server -> webpack-dev-server 中, setupMiddlewares 优先于 createServer
            * 执行，需要等待 server 启动后再注入 mock websocket
            */
-          waitServer(() => devServer.server)
+          waitServerForMockWebSocket(() => devServer.server)
           return middlewares
         },
       }
 
-      const proxy = compilerOptions.devServer?.proxy || []
       const wsPrefix = toArray(options.wsPrefix)
-      if (proxy.length) {
-        compilerOptions.devServer!.proxy = proxy.map((item) => {
-          if (typeof item !== 'function' && !item.ws) {
-            const onProxyReq = item.onProxyReq
-            item.onProxyReq = (proxyReq, req, ...args) => {
-              onProxyReq?.(proxyReq, req, ...args)
-              rewriteRequest(proxyReq, req)
+      if (compilerOptions.devServer?.proxy?.length) {
+        const proxy = compilerOptions.devServer.proxy
+        compilerOptions.devServer.proxy = proxy
+          // 排除 proxy 中的 与 wsPrefix 相关的 ws 代理配置，避免 request upgrade 冲突
+          .filter((item) => {
+            if (typeof item !== 'function' && item.ws === true && wsPrefix.length) {
+              return !toArray(item.context).filter(isString).some(context => wsPrefix.includes(context))
             }
-          }
-          return item
-        }).filter((item) => {
-          if (typeof item !== 'function' && item.ws === true && wsPrefix.length) {
-            return !toArray(item.context).filter(isString).some(context => wsPrefix.includes(context))
-          }
-          return true
-        })
+            return true
+          })
+          // 恢复代理请求数据流
+          .map((item) => {
+            if (typeof item !== 'function' && !item.ws) {
+              const onProxyReq = item.onProxyReq
+              item.onProxyReq = (proxyReq, req, ...args) => {
+                onProxyReq?.(proxyReq, req, ...args)
+                rewriteRequest(proxyReq, req)
+              }
+            }
+            return item
+          })
       }
 
       compiler.hooks.watchRun.tap(PLUGIN_NAME, () => mockCompiler.run())
