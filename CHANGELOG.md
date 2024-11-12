@@ -1,3 +1,17 @@
+# [0.5.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.4.1...v0.5.0) (2024-11-12)
+
+
+### Features
+
+* improve types exports, close [#6](https://github.com/pengzhanbo/rspack-plugin-mock/issues/6) ([d2ad9d1](https://github.com/pengzhanbo/rspack-plugin-mock/commit/d2ad9d1b560c31353ccdd3c785e7f2f0bc4a54ee))
+
+
+### Performance Improvements
+
+* update deps to latest ([a1aa37f](https://github.com/pengzhanbo/rspack-plugin-mock/commit/a1aa37f44a7e8c45007e56b1cc429ddf827db6a2))
+
+
+
 ## [0.4.1](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.4.0...v0.4.1) (2024-10-16)
 
 
