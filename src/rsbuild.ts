@@ -1,5 +1,4 @@
-import type { RsbuildConfig, RsbuildPlugin } from '@rsbuild/core'
-import type { ProxyOptions } from '@rsbuild/core/dist-types/types'
+import type { ProxyOptions, RsbuildConfig, RsbuildPlugin } from '@rsbuild/core'
 import type * as http from 'node:http'
 import type { MockServerPluginOptions } from './types'
 import { createServer } from 'node:http'
@@ -15,6 +14,8 @@ import { createMockMiddleware } from './core/mockMiddleware'
 import { mockWebSocket } from './core/mockWebsocket'
 import { rewriteRequest } from './core/requestRecovery'
 import { resolvePluginOptions } from './core/resolvePluginOptions'
+
+export * from './types'
 
 export function pluginMockServer(options: MockServerPluginOptions = {}): RsbuildPlugin {
   return {
