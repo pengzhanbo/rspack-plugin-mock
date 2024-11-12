@@ -8,8 +8,8 @@
     "build": "cross-env NODE_ENV=production rspack build"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.0.11",
-    "@rspack/core": "^1.0.11",
+    "@rspack/cli": "^1.1.1",
+    "@rspack/core": "^1.1.1",
     "@types/mockjs": "^1.0.10",
     "cross-env": "^7.0.3",
     "mockjs": "^1.1.0",
