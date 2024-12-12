@@ -1,5 +1,5 @@
 import type { ExtraRequest } from '../types'
-import { isArray, isObject } from '@pengzhanbo/utils'
+import { isArray, isPlainObject } from '@pengzhanbo/utils'
 
 export function validate(
   request: ExtraRequest,
@@ -50,7 +50,7 @@ function isIncluded(source: unknown, target: unknown): boolean {
       }),
     )
   }
-  if (isObject(source) && isObject(target))
+  if (isPlainObject(source) && isPlainObject(target))
     return isObjectSubset(source, target)
 
   return Object.is(source, target)
