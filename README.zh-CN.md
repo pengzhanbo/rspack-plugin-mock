@@ -35,7 +35,7 @@
 - ⚓️ 支持在 mock文件中使用 `resolve.alias` 路径别名
 - 📤 支持 multipart 类型，模拟文件上传
 - 📥 支持模拟文件下载
-- ⚜️ 支持模拟 `WebSocket`
+- ⚜️ 支持模拟 `WebSocket` 和 `Server-Sent Events`
 - 🗂 支持构建可独立部署的小型mock服务
 
 ## 安装
@@ -184,6 +184,23 @@ const definePostMock = createDefineMock((mock) => {
 export default definePostMock({
   url: 'list', // => '/api/post/list'
   body: [{ title: '1' }, { title: '2' }],
+})
+```
+
+### createSSEStream(req, res)
+
+创建一个 `Server-sent events` 写入流，用于支持模拟 `EventSource`。
+
+``` ts
+import { createSSEStream, defineMock } from 'rspack-plugin-mock/helper'
+
+export default defineMock({
+  url: '/api/sse',
+  response: (req, res) => {
+    const sse = createSSEStream(req, res)
+    sse.write({ event: 'message', data: { message: 'hello world' } })
+    sse.end()
+  }
 })
 ```
 
@@ -855,6 +872,40 @@ ws.addEventListener('open', () => {
 }, { once: true })
 ws.addEventListener('message', (raw) => {
   console.log(raw)
+})
+```
+
+**示例：** EventSource Mock
+
+```ts
+// sse.mock.ts
+import { createSSEStream, defineMock } from 'rspack-plugin-mock/helper'
+
+export default defineMock({
+  url: '/api/sse',
+  response(req, res) {
+    const sse = createSSEStream(req, res)
+    let count = 0
+    const timer = setInterval(() => {
+      sse.write({
+        event: 'count',
+        data: { count: ++count },
+      })
+      if (count >= 10) {
+        sse.end()
+        clearInterval(timer)
+      }
+    }, 1000)
+  },
+})
+```
+
+```ts
+// app.js
+const es = new EventSource('/api/sse')
+
+es.addEventListener('count', (e) => {
+  console.log(e.data)
 })
 ```
 
