@@ -35,7 +35,7 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 - ⚓️ Support `alias` in the mock file.
 - 📤 Support `multipart` content-type, mock upload file.
 - 📥 Support mock download file.
-- ⚜️ Support `WebSocket Mock`
+- ⚜️ Support `WebSocket Mock` and `Server-Sent Events Mock`
 - 🗂 Support building small independent deployable mock services.
 
 ## Install
@@ -184,6 +184,23 @@ const definePostMock = createDefineMock((mock) => {
 export default definePostMock({
   url: 'list', // => '/api/post/list'
   body: [{ title: '1' }, { title: '2' }],
+})
+```
+
+### createSSEStream(req, res)
+
+Create a `Server-sent events` write stream to support mocking `EventSource`.
+
+``` ts
+import { createSSEStream, defineMock } from 'rspack-plugin-mock/helper'
+
+export default defineMock({
+  url: '/api/sse',
+  response: (req, res) => {
+    const sse = createSSEStream(req, res)
+    sse.write({ event: 'message', data: { message: 'hello world' } })
+    sse.end()
+  }
 })
 ```
 
@@ -857,6 +874,40 @@ ws.addEventListener('open', () => {
 }, { once: true })
 ws.addEventListener('message', (raw) => {
   console.log(raw)
+})
+```
+
+**exp：** EventSource Mock
+
+```ts
+// sse.mock.ts
+import { createSSEStream, defineMock } from 'rspack-plugin-mock/helper'
+
+export default defineMock({
+  url: '/api/sse',
+  response(req, res) {
+    const sse = createSSEStream(req, res)
+    let count = 0
+    const timer = setInterval(() => {
+      sse.write({
+        event: 'count',
+        data: { count: ++count },
+      })
+      if (count >= 10) {
+        sse.end()
+        clearInterval(timer)
+      }
+    }, 1000)
+  },
+})
+```
+
+```ts
+// app.js
+const es = new EventSource('/api/sse')
+
+es.addEventListener('count', (e) => {
+  console.log(e.data)
 })
 ```
 

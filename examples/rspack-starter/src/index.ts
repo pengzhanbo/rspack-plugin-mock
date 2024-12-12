@@ -129,5 +129,19 @@ function webSocketMock() {
   }, 3000)
 }
 
+function eventSourceMock() {
+  const es = new EventSource('/api/sse')
+  es.addEventListener('count', (e) => {
+    // eslint-disable-next-line no-console
+    console.log('sse count ->', e.data)
+  })
+  es.addEventListener('close', () => {
+    es.close()
+    // eslint-disable-next-line no-console
+    console.log('sse closed')
+  })
+}
+
 bootstrap()
 webSocketMock()
+eventSourceMock()
