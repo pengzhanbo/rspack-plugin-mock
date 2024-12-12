@@ -61,13 +61,13 @@ export function resolvePluginOptions(
     priority,
     build: build
       ? Object.assign(
-        {
-          serverPort: 8080,
-          dist: 'mockServer',
-          log: 'error',
-        },
-        typeof build === 'object' ? build : {},
-      )
+          {
+            serverPort: 8080,
+            dist: 'mockServer',
+            log: 'error',
+          },
+          typeof build === 'object' ? build : {},
+        )
       : false,
     alias,
     plugins,
