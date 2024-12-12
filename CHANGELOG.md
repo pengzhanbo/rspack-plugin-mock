@@ -1,3 +1,22 @@
+# [1.0.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.5.0...v1.0.0) (2024-12-12)
+
+
+### Bug Fixes
+
+* rename `isObject` to `isPlainObject`, close [#7](https://github.com/pengzhanbo/rspack-plugin-mock/issues/7) ([25a2aa8](https://github.com/pengzhanbo/rspack-plugin-mock/commit/25a2aa859c4ea76715f72227668a5d15929035f5))
+
+
+### Features
+
+* add `Server-Sent Events` mock support ([161cafa](https://github.com/pengzhanbo/rspack-plugin-mock/commit/161cafa9b4421cc5155c6ba5ef24fd361cb95b89))
+
+
+### Performance Improvements
+
+* update deps to latest ([485d3a2](https://github.com/pengzhanbo/rspack-plugin-mock/commit/485d3a24129827a06a024ba83e2ca41d6deebcfa))
+
+
+
 # [0.5.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.4.1...v0.5.0) (2024-11-12)
 
 
