@@ -1,3 +1,12 @@
+## [1.0.1](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.0.0...v1.0.1) (2024-12-18)
+
+
+### Features
+
+* lock `path-to-regexp` version to `6.3.0` ([0630b6e](https://github.com/pengzhanbo/rspack-plugin-mock/commit/0630b6e1ac74fadf75a370022ad0f879b4e61643))
+
+
+
 # [1.0.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v0.5.0...v1.0.0) (2024-12-12)
 
 
