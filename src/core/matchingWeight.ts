@@ -28,7 +28,7 @@ function getTokens(rule: string) {
   if (tokensCache[rule])
     return tokensCache[rule]
 
-  const { tokens: tks } = parse(rule)
+  const tks = parse(rule)
   const tokens: Token[] = []
   for (const tk of tks) {
     if (!isString(tk)) {
