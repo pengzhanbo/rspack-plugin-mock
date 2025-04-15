@@ -1,5 +1,6 @@
 import type { Compiler, RspackPluginInstance } from '@rspack/core'
 import type { Server } from 'node:http'
+import type { ResolvePluginOptions } from './core/resolvePluginOptions'
 import type { MockServerPluginOptions } from './types'
 import path from 'node:path'
 import process from 'node:process'
@@ -10,10 +11,7 @@ import { createMockCompiler } from './core/mockCompiler'
 import { createMockMiddleware } from './core/mockMiddleware'
 import { mockWebSocket } from './core/mockWebsocket'
 import { rewriteRequest } from './core/requestRecovery'
-import {
-  type ResolvePluginOptions,
-  resolvePluginOptions as resolvePluginOptionsRaw,
-} from './core/resolvePluginOptions'
+import { resolvePluginOptions as resolvePluginOptionsRaw } from './core/resolvePluginOptions'
 import { waitingFor } from './core/utils'
 
 const PLUGIN_NAME = 'rspack-plugin-mock'

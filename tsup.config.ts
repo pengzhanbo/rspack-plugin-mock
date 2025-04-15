@@ -1,8 +1,9 @@
+import type { Options } from 'tsup'
 import { promises as fsp } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import fg from 'fast-glob'
-import { defineConfig, type Options } from 'tsup'
+import { defineConfig } from 'tsup'
 
 const shared: Options = {
   dts: true,
