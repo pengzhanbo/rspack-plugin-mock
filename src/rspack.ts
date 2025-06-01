@@ -19,7 +19,7 @@ const PLUGIN_NAME = 'rspack-plugin-mock'
 export class MockServerPlugin implements RspackPluginInstance {
   constructor(public options: MockServerPluginOptions = {}) {}
 
-  apply(compiler: Compiler) {
+  apply(compiler: Compiler): void {
     const compilerOptions = compiler.options
     const options = resolvePluginOptions(compiler, this.options)
 
@@ -86,7 +86,7 @@ export class MockServerPlugin implements RspackPluginInstance {
   }
 }
 
-export function resolvePluginOptions(compiler: Compiler, options: MockServerPluginOptions): ResolvePluginOptions {
+export function resolvePluginOptions(compiler: Compiler, options: MockServerPluginOptions = {}): ResolvePluginOptions {
   const compilerOptions = compiler.options
   const alias = compilerOptions.resolve?.alias || {}
   const context = compilerOptions.context

@@ -35,7 +35,7 @@ export function resolvePluginOptions(
     cookiesOptions = {},
     bodyParserOptions = {},
     priority = {},
-  }: MockServerPluginOptions = {},
+  }: MockServerPluginOptions,
   { alias, context, plugins, proxies }: Omit<ResolvedCompilerOptions, 'wsProxies'>,
 ): ResolvePluginOptions {
   const logger = createLogger(

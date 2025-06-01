@@ -18,8 +18,8 @@ export interface MiddlewareOptions {
 export function createMockMiddleware(
   compiler: MockCompiler,
   options: ResolvePluginOptions,
-) {
-  function mockMiddleware(middlewares: Middleware[], reload?: () => void): Middleware[] {
+): (middlewares: Middleware[], reload?: () => void) => Middleware[] {
+  return function mockMiddleware(middlewares, reload) {
     middlewares.unshift(baseMiddleware(compiler, options))
 
     const corsMiddleware = createCorsMiddleware(compiler, options)
@@ -32,8 +32,6 @@ export function createMockMiddleware(
 
     return middlewares
   }
-
-  return mockMiddleware
 }
 
 function createCorsMiddleware(

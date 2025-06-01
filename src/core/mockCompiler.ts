@@ -25,7 +25,7 @@ export interface MockCompilerOptions {
   logger: Logger
 }
 
-export function createMockCompiler(options: MockCompilerOptions) {
+export function createMockCompiler(options: MockCompilerOptions): MockCompiler {
   return new MockCompiler(options)
 }
 
@@ -60,11 +60,11 @@ export class MockCompiler extends EventEmitter {
     this.entryFile = path.resolve(process.cwd(), 'node_modules/.cache/mock-server/mock-server.ts')
   }
 
-  get mockData() {
+  get mockData(): Record<string, MockOptions> {
     return this._mockData
   }
 
-  async run() {
+  async run(): Promise<void> {
     await this.updateMockEntry()
     this.watchMockFiles()
 
@@ -95,20 +95,20 @@ export class MockCompiler extends EventEmitter {
     })
   }
 
-  close() {
+  close(): void {
     this.mockWatcher.close()
     this.compiler?.close(() => {})
     this.emit('close')
   }
 
-  updateAlias(alias: Record<string, false | string | (string | false)[]>) {
+  updateAlias(alias: Record<string, false | string | (string | false)[]>): void {
     this.options.alias = {
       ...this.options.alias,
       ...alias,
     }
   }
 
-  async updateMockEntry() {
+  async updateMockEntry(): Promise<void> {
     const files = await this.getMockFiles()
     await writeMockEntryFile(this.entryFile, files, this.cwd)
   }
@@ -119,7 +119,7 @@ export class MockCompiler extends EventEmitter {
     return files.filter(this.fileFilter)
   }
 
-  watchMockFiles() {
+  watchMockFiles(): void {
     const { include } = this.options
     const [firstGlob, ...otherGlob] = toArray(include)
     const watcher = (this.mockWatcher = chokidar.watch(firstGlob, {

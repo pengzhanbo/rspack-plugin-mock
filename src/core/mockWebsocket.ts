@@ -44,7 +44,7 @@ export function mockWebSocket(
     cookiesOptions,
     logger,
   }: MockSocketOptions,
-) {
+): void {
   // 热更新文件映射
   const hmrMap = new Map<string, Set<string>>()
   // 连接池

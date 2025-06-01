@@ -14,7 +14,7 @@ import { lookupFile, normalizePath, packageDir } from './utils'
 export async function buildMockServer(
   options: ResolvePluginOptions,
   outputDir: string,
-) {
+): Promise<void> {
   const entryFile = path.resolve(process.cwd(), 'node_modules/.cache/mock-server/mock-server.ts')
   const mockFileList = await getMockFileList(options)
   await writeMockEntryFile(entryFile, mockFileList, options.cwd)
@@ -128,7 +128,7 @@ async function getMockFileList({ cwd, include, exclude }: {
   return await fg(include, { cwd }).then(files => files.filter(filter))
 }
 
-export async function writeMockEntryFile(entryFile: string, files: string[], cwd: string) {
+export async function writeMockEntryFile(entryFile: string, files: string[], cwd: string): Promise<void> {
   const importers: string[] = []
   const exporters: string[] = []
   for (const [index, filepath] of files.entries()) {

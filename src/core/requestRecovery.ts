@@ -8,10 +8,10 @@ import type * as http from 'node:http'
  */
 import { Buffer } from 'node:buffer'
 
-export const requestCollectCache = new WeakMap<http.IncomingMessage, Buffer>()
+export const requestCollectCache: WeakMap<http.IncomingMessage, Buffer> = new WeakMap()
 
 // 备份请求数据
-export function collectRequest(req: http.IncomingMessage) {
+export function collectRequest(req: http.IncomingMessage): void {
   const chunks: Buffer[] = []
   req.addListener('data', (chunk) => {
     chunks.push(Buffer.from(chunk))
@@ -22,7 +22,7 @@ export function collectRequest(req: http.IncomingMessage) {
   })
 }
 
-export function rewriteRequest(proxyReq: http.ClientRequest, req: http.IncomingMessage) {
+export function rewriteRequest(proxyReq: http.ClientRequest, req: http.IncomingMessage): void {
   const buffer = requestCollectCache.get(req)
   if (buffer) {
     requestCollectCache.delete(req)

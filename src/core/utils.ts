@@ -1,4 +1,6 @@
+import type { IFs } from 'memfs'
 import type http from 'node:http'
+import type { ParsedUrlQuery } from 'node:querystring'
 import type { Readable, Stream } from 'node:stream'
 import fs from 'node:fs'
 import os from 'node:os'
@@ -9,8 +11,8 @@ import Debug from 'debug'
 import { createFsFromVolume, Volume } from 'memfs'
 import { match } from 'path-to-regexp'
 
-export const packageDir = getDirname(import.meta.url)
-export const vfs = createFsFromVolume(new Volume())
+export const packageDir: string = getDirname(import.meta.url)
+export const vfs: IFs = createFsFromVolume(new Volume())
 
 export function isStream(stream: unknown): stream is Stream {
   return stream !== null
@@ -29,7 +31,7 @@ export function getDirname(importMetaUrl: string): string {
   return path.dirname(fileURLToPath(importMetaUrl))
 }
 
-export const debug = Debug('rspack:mock')
+export const debug: Debug.Debugger = Debug('rspack:mock')
 
 interface LookupFileOptions {
   pathOnly?: boolean
@@ -86,7 +88,10 @@ export function parseParams(pattern: string, url: string): Record<string, any> {
  * nodejs 从 19.0.0 开始 弃用 url.parse，因此使用 url.parse 来解析 可能会报错，
  * 使用 URL 来解析
  */
-export function urlParse(input: string) {
+export function urlParse(input: string): {
+  pathname: string
+  query: ParsedUrlQuery
+} {
   const url = new URL(input, 'http://example.com')
   const pathname = decodeURIComponent(url.pathname)
   const query = queryParse(url.search.replace(/^\?/, ''))
@@ -103,8 +108,11 @@ export function normalizePath(id: string): string {
   return path.posix.normalize(isWindows ? slash(id) : id)
 }
 
-export function waitingFor<T>(onSuccess: (value: T) => void, maxRetry = 5) {
-  return function wait(getter: () => T | null | undefined, retry = 0) {
+export function waitingFor<T>(
+  onSuccess: (value: T) => void,
+  maxRetry = 5,
+): (getter: () => T | null | undefined, retry?: number) => void {
+  return function wait(getter, retry = 0) {
     const value = getter()
     if (value) {
       onSuccess(value)
