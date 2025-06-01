@@ -75,8 +75,8 @@
     "pnpm": ">=9"
   },
   "scripts": {
-    "dev": "tsup src --watch",
-    "build": "tsup",
+    "dev": "tsdown src --watch",
+    "build": "tsdown",
     "lint": "eslint .",
     "prepare": "husky",
     "prepublishOnly": "pnpm run build",
@@ -133,7 +133,7 @@
     "eslint": "^9.28.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.0",
-    "tsup": "^8.5.0",
+    "tsdown": "^0.12.6",
     "typescript": "^5.8.3"
   },
   "lint-staged": {

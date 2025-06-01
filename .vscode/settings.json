@@ -3,6 +3,7 @@
     "mockjs",
     "picocolors",
     "rsbuild",
-    "rspack"
+    "rspack",
+    "tsdown"
   ]
 }
