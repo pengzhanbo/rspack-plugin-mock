@@ -7,7 +7,7 @@ export default defineConfig({
   html: {
     template: './index.html',
   },
-  source: {
+  resolve: {
     alias: {
       '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
     },

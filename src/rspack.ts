@@ -1,5 +1,5 @@
 import type { Compiler, RspackPluginInstance } from '@rspack/core'
-import type { Server } from 'node:http'
+import type { ClientRequest, IncomingMessage, Server } from 'node:http'
 import type { ResolvePluginOptions } from './core/resolvePluginOptions'
 import type { MockServerPluginOptions } from './types'
 import path from 'node:path'
@@ -65,7 +65,7 @@ export class MockServerPlugin implements RspackPluginInstance {
           .map((item) => {
             if (typeof item !== 'function' && !item.ws) {
               const onProxyReq = item.onProxyReq
-              item.onProxyReq = (proxyReq, req, ...args) => {
+              item.onProxyReq = (proxyReq: ClientRequest, req: IncomingMessage, ...args: unknown[]) => {
                 onProxyReq?.(proxyReq, req, ...args)
                 rewriteRequest(proxyReq, req)
               }
