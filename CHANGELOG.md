@@ -1,3 +1,18 @@
+# [1.2.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.1.0...v1.2.0) (2025-07-03)
+
+
+### Features
+
+* upgrade `formidable` to `3.5.4`, close [#13](https://github.com/pengzhanbo/rspack-plugin-mock/issues/13) ([937ec26](https://github.com/pengzhanbo/rspack-plugin-mock/commit/937ec2673ef7d2b87abba0a270078fc36d7075de))
+
+
+### Performance Improvements
+
+* update deps to latest ([38182b8](https://github.com/pengzhanbo/rspack-plugin-mock/commit/38182b89ea4edb3c79e6f7c8121c85cfd4e760d1))
+* update deps to latest ([2885c4e](https://github.com/pengzhanbo/rspack-plugin-mock/commit/2885c4ee9668945e161261b6ee604ac01e9b7000))
+
+
+
 # [1.1.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.0.1...v1.1.0) (2025-04-15)
 
 
