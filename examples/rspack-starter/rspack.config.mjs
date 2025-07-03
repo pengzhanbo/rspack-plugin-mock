@@ -6,6 +6,7 @@ import { rspack } from '@rspack/core'
 import { MockServerPlugin } from 'rspack-plugin-mock'
 
 const targets = ['chrome >= 87', 'edge >= 88', 'firefox >= 78', 'safari >= 14']
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /** @type {import('@rspack/cli').Configuration} */
 export default {
@@ -15,7 +16,7 @@ export default {
   resolve: {
     extensions: ['.js', '.ts'],
     alias: {
-      '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   devServer: {
@@ -67,6 +68,9 @@ export default {
       prefix: '/api-dev/',
       wsPrefix: '/socket.io',
       build: true,
+      formidableOptions: {
+        uploadDir: path.resolve(__dirname, './upload'),
+      },
     }),
     new rspack.HtmlRspackPlugin({ template: './index.html' }),
   ],
