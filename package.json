@@ -63,9 +63,9 @@
     "build": "tsdown",
     "lint": "eslint .",
     "prepare": "husky",
-    "prepublishOnly": "pnpm run build",
+    "release:publish": "pnpm -r publish",
     "release:changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
-    "release": "bumpp package.json --execute=\"pnpm release:changelog\" --commit --all --push --tag && pnpm publish --access public"
+    "release": "bumpp package.json --execute=\"pnpm release:changelog\" --commit --all --push --tag"
   },
   "peerDependencies": {
     "@rsbuild/core": ">=1.0.0",
@@ -122,5 +122,9 @@
   },
   "lint-staged": {
     "*": "eslint --fix"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
