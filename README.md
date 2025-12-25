@@ -235,10 +235,18 @@ export default defineMock({
 
   Configure the matching context for `include` and `exclude`.
 
+### options.dir
+
+- **Type:** `string`
+- **Default:** `mock` (relative to [`options.cwd`](#optionscwd))
+- **Details:**
+
+  Configure the directory where mock files are located
+
 ### options.include
 
 - **Type:** `string | string[]`
-- **Default:** `['mock/**/*.mock.{js,ts,cjs,mjs,json,json5}']`
+- **Default:** `['**/*.mock.{js,ts,cjs,mjs,json,json5}']` (relative to [`options.dir`](#optionsdir))
 - **Details:**
 
   glob string matching mock includes files. see [picomatch](https://github.com/micromatch/picomatch#globbing-features)
@@ -246,7 +254,7 @@ export default defineMock({
 ### options.exclude
 
 - **Type:** `string | string[]`
-- **Default:** `['**/node_modules/**', '**/.vscode/**', '**/.git/**']`
+- **Default:** `[]`  (relative to [`options.dir`](#optionsdir))
 - **Details:**
 
   glob string matching mock excluded files. see [picomatch](https://github.com/micromatch/picomatch#globbing-features)

@@ -2,7 +2,7 @@
 
 在 [Rspack](https://rspack.dev) and [Rsbuild](https://rsbuild.dev) 中注入 API mock 服务。
 
-在 `rspack` 和 `rsbuild` 中实现一个与 [vite-plugin-mock-dev-server](https://github.com/pengzhanbo/vite-plugin-mock-dev-server) 完全一致的模拟开发服务器。
+在 `rspack` 和 `rsbuild` 中实现与 [vite-plugin-mock-dev-server](https://github.com/pengzhanbo/vite-plugin-mock-dev-server) 完全一致的模拟开发服务。
 
 <p align="center">
   <a href="https://www.npmjs.com/package/rspack-plugin-mock"><img alt="npm" src="https://img.shields.io/npm/v/rspack-plugin-mock?style=flat-square&colorA=564341&colorB=EDED91"></a>
@@ -31,8 +31,8 @@
 - ⚙️ 随意开启或关闭对某个接口的 mock配置
 - 📀 支持多种响应体数据类型，包括 `text/json/buffer/stream`.
 - ⚖️ rspack 中使用 `devServer.proxy` 配置, rsbuild 中使用 `server.proxy` 配置
-- 🍕 支持在 mock文件中使用 `define`配置
-- ⚓️ 支持在 mock文件中使用 `resolve.alias` 路径别名
+- 🍕 支持在 mock 文件中使用 `define`配置
+- ⚓️ 支持在 mock 文件中使用 `resolve.alias` 路径别名
 - 📤 支持 multipart 类型，模拟文件上传
 - 📥 支持模拟文件下载
 - ⚜️ 支持模拟 `WebSocket` 和 `Server-Sent Events`
@@ -232,10 +232,18 @@ export default defineMock({
 
   配置 `include` 和 `exclude` 的匹配上下文。
 
+### options.dir
+
+- **类型：** `string`
+- **默认值：** `mock` (相对于 [`options.cwd`](#optionscwd))
+- **详情：**
+
+  配置 mock 包的输出目录，相对于 [`options.cwd`](#optionscwd)
+
 ### options.include
 
 - **类型：** `string | string[]`
-- **默认值：** `['mock/**/*.mock.{js,ts,cjs,mjs,json,json5}']`
+- **默认值：** `[**/*.mock.{js,ts,cjs,mjs,json,json5}']` (相对于 [`options.dir`](#optionsdir))
 - **详情：**
 
   glob 字符串匹配 mock 包含的文件。 查看 [picomatch](https://github.com/micromatch/picomatch#globbing-features)
@@ -243,7 +251,7 @@ export default defineMock({
 ### options.exclude
 
 - **类型：** `string | string[]`
-- **默认值：** `['**/node_modules/**', '**/.vscode/**', '**/.git/**']`
+- **默认值：** `[]`  (相对于 [`options.dir`](#optionsdir))
 - **详情：**
 
   glob 字符串匹配 mock 排除的文件。 查看 [picomatch](https://github.com/micromatch/picomatch#globbing-features)
