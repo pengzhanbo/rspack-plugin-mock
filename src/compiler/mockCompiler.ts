@@ -1,41 +1,33 @@
-import type { Compiler, RspackPluginInstance } from '@rspack/core'
-import type { FSWatcher } from 'node:fs'
+import type { Compiler } from '@rspack/core'
+import type { FSWatcher } from 'chokidar'
+import type { Matcher } from 'picomatch'
+import type { ResolvePluginOptions } from '../options'
 import type { MockOptions } from '../types'
 import type { CompilerOptions } from './createRspackCompiler'
-import type { Logger } from './logger'
 import EventEmitter from 'node:events'
 import path from 'node:path'
 import process from 'node:process'
-import { toArray } from '@pengzhanbo/utils'
-import { createFilter } from '@rollup/pluginutils'
+import { uniq } from '@pengzhanbo/utils'
 import chokidar from 'chokidar'
-import fastGlob from 'fast-glob'
-import { writeMockEntryFile } from './build'
+import { loadPackageJSONSync } from 'local-pkg'
+import { glob } from 'tinyglobby'
+import { writeMockEntryFile } from '../build'
+import { createMatcher, normalizePath } from '../utils'
 import { createCompiler } from './createRspackCompiler'
 import { loadFromCode } from './loadFromCode'
-import { transformMockData, transformRawData } from './transform'
-import { lookupFile } from './utils'
+import { processMockData, processRawData } from './processData'
 
-export interface MockCompilerOptions {
-  alias?: Record<string, false | string | (string | false)[]>
-  plugins: RspackPluginInstance[]
-  cwd?: string
-  include: string | string[]
-  exclude: string | string[]
-  logger: Logger
-}
-
-export function createMockCompiler(options: MockCompilerOptions): MockCompiler {
+export function createMockCompiler(options: ResolvePluginOptions): MockCompiler {
   return new MockCompiler(options)
 }
 
 export class MockCompiler extends EventEmitter {
   cwd: string
   mockWatcher!: FSWatcher
-  moduleType: 'cjs' | 'esm' = 'cjs'
   entryFile!: string
+  deps: string[] = []
+  isESM: boolean = false
   private _mockData: Record<string, MockOptions> = {}
-  private fileFilter!: (file: string) => boolean
 
   private watchInfo?: {
     filepath: string
@@ -44,17 +36,13 @@ export class MockCompiler extends EventEmitter {
 
   compiler?: Compiler | null
 
-  constructor(public options: MockCompilerOptions) {
+  constructor(public options: ResolvePluginOptions) {
     super()
     this.cwd = options.cwd || process.cwd()
-    const { include, exclude } = this.options
-
-    this.fileFilter = createFilter(include, exclude, { resolve: false })
 
     try {
-      const pkg = lookupFile(this.cwd, ['package.json'])
-      this.moduleType
-        = !!pkg && JSON.parse(pkg).type === 'module' ? 'esm' : 'cjs'
+      const pkg = loadPackageJSONSync(this.cwd)
+      this.isESM = pkg?.type === 'module'
     }
     catch {}
     this.entryFile = path.resolve(process.cwd(), 'node_modules/.cache/mock-server/mock-server.ts')
@@ -65,12 +53,16 @@ export class MockCompiler extends EventEmitter {
   }
 
   async run(): Promise<void> {
-    await this.updateMockEntry()
-    this.watchMockFiles()
+    const { include, exclude } = this.options
+    const { pattern, ignore, isMatch } = createMatcher(include, exclude)
+    const files = await glob(pattern, { ignore, cwd: path.join(this.cwd, this.options.dir) })
+    this.deps = files.map(file => normalizePath(file))
+    this.updateMockEntry()
+    this.watchMockFiles(isMatch)
 
     const { plugins, alias } = this.options
     const options: CompilerOptions = {
-      isEsm: this.moduleType === 'esm',
+      isEsm: this.isESM,
       cwd: this.cwd,
       plugins,
       entryFile: this.entryFile,
@@ -83,10 +75,10 @@ export class MockCompiler extends EventEmitter {
         const result = await loadFromCode({
           filepath: 'mock.bundle.js',
           code,
-          isESM: this.moduleType === 'esm',
+          isESM: this.isESM,
           cwd: this.cwd,
         })
-        this._mockData = transformMockData(transformRawData(result))
+        this._mockData = processMockData(processRawData(result))
         this.emit('update', this.watchInfo || {})
       }
       catch (e: any) {
@@ -109,43 +101,43 @@ export class MockCompiler extends EventEmitter {
   }
 
   async updateMockEntry(): Promise<void> {
-    const files = await this.getMockFiles()
-    await writeMockEntryFile(this.entryFile, files, this.cwd)
+    await writeMockEntryFile(this.entryFile, this.deps, this.cwd, this.options.dir)
   }
 
-  async getMockFiles(): Promise<string[]> {
-    const { include } = this.options
-    const files = await fastGlob(include, { cwd: this.cwd })
-    return files.filter(this.fileFilter)
-  }
-
-  watchMockFiles(): void {
-    const { include } = this.options
-    const [firstGlob, ...otherGlob] = toArray(include)
-    const watcher = (this.mockWatcher = chokidar.watch(firstGlob, {
+  watchMockFiles(isMatch: Matcher): void {
+    const watcher = (this.mockWatcher = chokidar.watch(this.options.dir, {
       ignoreInitial: true,
       cwd: this.cwd,
+      ignored: (filepath, stats) => {
+        if (filepath.includes('node_modules'))
+          return true
+        return !!stats?.isFile() && !isMatch(filepath)
+      },
     }))
 
-    if (otherGlob.length > 0)
-      otherGlob.forEach(glob => watcher.add(glob))
-
     watcher.on('add', (filepath) => {
-      if (this.fileFilter(filepath)) {
+      filepath = normalizePath(filepath)
+      if (isMatch(filepath)) {
         this.watchInfo = { filepath, type: 'add' }
+        this.deps = uniq([...this.deps, filepath])
         this.updateMockEntry()
       }
     })
 
     watcher.on('change', (filepath) => {
-      if (this.fileFilter(filepath)) {
+      filepath = normalizePath(filepath)
+      if (isMatch(filepath)) {
         this.watchInfo = { filepath, type: 'change' }
       }
     })
 
     watcher.on('unlink', async (filepath) => {
-      this.watchInfo = { filepath, type: 'unlink' }
-      this.updateMockEntry()
+      filepath = normalizePath(filepath)
+      if (isMatch(filepath)) {
+        this.watchInfo = { filepath, type: 'unlink' }
+        this.deps = this.deps.filter(dep => dep !== filepath)
+        this.updateMockEntry()
+      }
     })
   }
 }

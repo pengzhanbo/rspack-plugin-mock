@@ -1,13 +1,10 @@
 import { createReadStream } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { defineMock } from 'rspack-plugin-mock/helper'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineMock({
   url: '/api/file-download',
   type: 'shared.js',
   // response file read stream
-  body: () => createReadStream(join(__dirname, 'shared.ts')),
+  body: () => createReadStream(join(import.meta.dirname, 'shared.ts')),
 })

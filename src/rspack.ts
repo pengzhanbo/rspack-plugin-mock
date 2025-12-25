@@ -1,18 +1,16 @@
 import type { Compiler, RspackPluginInstance } from '@rspack/core'
 import type { ClientRequest, IncomingMessage, Server } from 'node:http'
-import type { ResolvePluginOptions } from './core/resolvePluginOptions'
+import type { ResolvePluginOptions } from './options'
 import type { MockServerPluginOptions } from './types'
 import path from 'node:path'
 import process from 'node:process'
 import { isString, toArray } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
-import { buildMockServer } from './core/build'
-import { createMockCompiler } from './core/mockCompiler'
-import { createMockMiddleware } from './core/mockMiddleware'
-import { mockWebSocket } from './core/mockWebsocket'
-import { rewriteRequest } from './core/requestRecovery'
-import { resolvePluginOptions as resolvePluginOptionsRaw } from './core/resolvePluginOptions'
-import { waitingFor } from './core/utils'
+import { buildMockServer } from './build'
+import { createMockCompiler } from './compiler'
+import { initMockMiddleware, mockWebSocket, rewriteRequest } from './core'
+import { resolvePluginOptions as resolvePluginOptionsRaw } from './options'
+import { waitingFor } from './utils'
 
 const PLUGIN_NAME = 'rspack-plugin-mock'
 
@@ -26,7 +24,7 @@ export class MockServerPlugin implements RspackPluginInstance {
     if (process.env.NODE_ENV !== 'production') {
       const mockCompiler = createMockCompiler(options)
 
-      const mockMiddleware = createMockMiddleware(mockCompiler, options)
+      const mockMiddleware = initMockMiddleware(mockCompiler, options)
       const setupMiddlewares = compilerOptions.devServer?.setupMiddlewares
       const waitServerForMockWebSocket = waitingFor<Server>((server) => {
         mockWebSocket(mockCompiler, server, options)
@@ -65,7 +63,7 @@ export class MockServerPlugin implements RspackPluginInstance {
           .map((item) => {
             if (typeof item !== 'function' && !item.ws) {
               const onProxyReq = item.onProxyReq
-              item.onProxyReq = (proxyReq: ClientRequest, req: IncomingMessage, ...args: unknown[]) => {
+              item.onProxyReq = (proxyReq: ClientRequest, req: IncomingMessage, ...args) => {
                 onProxyReq?.(proxyReq, req, ...args)
                 rewriteRequest(proxyReq, req)
               }

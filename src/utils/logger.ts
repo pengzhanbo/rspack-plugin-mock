@@ -1,6 +1,6 @@
 import type { LogLevel, LogType } from '../types'
 import { isBoolean } from '@pengzhanbo/utils'
-import colors from 'picocolors'
+import ansis from 'ansis'
 
 export interface Logger {
   debug: (msg: string, level?: boolean | LogLevel) => void
@@ -30,13 +30,13 @@ export function createLogger(
       const method = type === 'info' || type === 'debug' ? 'log' : type
       const tag
         = type === 'debug'
-          ? colors.magenta(colors.bold(prefix))
+          ? ansis.magenta.bold(prefix)
           : type === 'info'
-            ? colors.cyan(colors.bold(prefix))
+            ? ansis.cyan.bold(prefix)
             : type === 'warn'
-              ? colors.yellow(colors.bold(prefix))
-              : colors.red(colors.bold(prefix))
-      const format = `${colors.dim(
+              ? ansis.yellow.bold(prefix)
+              : ansis.red.bold(prefix)
+      const format = `${ansis.dim(
         new Date().toLocaleTimeString(),
       )} ${tag} ${msg}`
 

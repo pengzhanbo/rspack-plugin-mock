@@ -1,9 +1,10 @@
 import type { Compiler, RspackOptions, RspackPluginInstance } from '@rspack/core'
 import { createRequire } from 'node:module'
+import process from 'node:process'
 import * as rspackCore from '@rspack/core'
+import ansis from 'ansis'
 import isCore from 'is-core-module'
-import color from 'picocolors'
-import { vfs } from './utils'
+import { getPackageDepList, vfs } from '../utils'
 
 const require = createRequire(import.meta.url)
 
@@ -30,7 +31,7 @@ export function createCompiler(
         stats.compilation.getLogger(name).error(...args)
       }
       else {
-        console.error(color.red(name), ...args)
+        console.error(ansis.red(name), ...args)
       }
     }
 
@@ -46,7 +47,6 @@ export function createCompiler(
       const info = stats.toJson()
       logError(info.errors)
     }
-
     const code = vfs.readFileSync('/output.js', 'utf-8') as string
     const externals: string[] = []
 
@@ -65,16 +65,18 @@ export function createCompiler(
     await callback({ code, externals })
   }
 
-  const compiler = rspackCore.rspack(rspackOptions, isWatch ? handler : undefined)
+  const compiler = rspackCore.rspack(rspackOptions)
 
-  if (compiler)
-    compiler.outputFileSystem = vfs as unknown as rspackCore.OutputFileSystem
+  compiler.outputFileSystem = vfs as unknown as rspackCore.OutputFileSystem
 
   if (!isWatch) {
-    compiler?.run(async (...args) => {
+    compiler.run(async (...args) => {
       await handler(...args)
-      compiler!.close(() => {})
+      compiler.close(() => {})
     })
+  }
+  else {
+    compiler.watch({}, handler)
   }
   return compiler
 }
@@ -109,13 +111,17 @@ function resolveRspackOptions({
     delete alias['@swc/helpers']
   }
 
+  const externals = getPackageDepList(cwd)
+  const externalPattern = new RegExp(`^(${externals.join('|')})($|/)`, 'i')
+
   return {
     mode: 'production',
     context: cwd,
     entry: entryFile,
     watch,
-    target: 'node18.0',
+    target: `node${(process.versions.node || '').replace(/\.\d+$/, '')}` as 'node',
     externalsType: isEsm ? 'module' : 'commonjs2',
+    externals: [externalPattern],
     resolve: {
       alias,
       extensions: ['.js', '.ts', '.cjs', '.mjs', '.json5', '.json'],
@@ -124,10 +130,12 @@ function resolveRspackOptions({
     output: {
       library: { type: !isEsm ? 'commonjs2' : 'module' },
       filename: 'output.js',
+      module: isEsm,
       path: '/',
     },
     experiments: { outputModule: isEsm },
     optimization: { minimize: !watch },
+    node: { __dirname: false, __filename: false },
     module: {
       rules: [
         {

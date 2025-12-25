@@ -1,3 +1,11 @@
+/**
+ * 由于插件是 分别独立对 `*.mock.*` 等文件作为单独入口进行编译的，
+ * 这导致了 mock 文件编译后的依赖关系不一致，每个 mock 文件拥有独立的作用域，
+ * 使得即使多个 `*.mock.*` 虽然引入了同一个 `data.ts` 文件，然而确是完全不同两份 `data`，
+ * 使得对 `data` 的操作，在不同的 `*.mock.*` 文件中并不能共享。
+ *
+ * 为此，插件提供了一种基于 memory 的数据共享机制。
+ */
 import { deepClone, deepEqual, isFunction } from '@pengzhanbo/utils'
 
 const mockDataCache = new Map<string, CacheImpl<any>>()
@@ -50,10 +58,18 @@ export function defineMockData<T = any>(
   key: string,
   initialData: T,
 ): MockData<T> {
-  if (!mockDataCache.has(key))
-    mockDataCache.set(key, new CacheImpl(initialData))
-
-  const cache = mockDataCache.get(key)! as CacheImpl<T>
+  let cache = mockDataCache.get(key) as CacheImpl<T> | undefined
+  if (!cache) {
+    const newCache = new CacheImpl(initialData)
+    const existing = mockDataCache.get(key)
+    if (existing) {
+      cache = existing as CacheImpl<T>
+    }
+    else {
+      mockDataCache.set(key, newCache)
+      cache = newCache
+    }
+  }
 
   cache.hotUpdate(initialData)
 

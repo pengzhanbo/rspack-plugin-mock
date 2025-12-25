@@ -6,10 +6,9 @@ import {
   sortBy,
   toArray,
 } from '@pengzhanbo/utils'
-import { urlParse } from './utils'
-import { isObjectSubset } from './validator'
+import { isObjectSubset, urlParse } from '../utils'
 
-export function transformRawData(
+export function processRawData(
   rawData: (readonly [any, string])[],
 ): (MockHttpItem | MockWebsocketItem | MockOptions)[] {
   return rawData.filter(item => item[0]).map(([raw, __filepath__]) => {
@@ -40,7 +39,7 @@ export function transformRawData(
   })
 }
 
-export function transformMockData(
+export function processMockData(
   mockList: (MockHttpItem | MockWebsocketItem | MockOptions)[],
 ): Record<string, MockOptions> {
   const list: MockOptions = []

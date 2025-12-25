@@ -1,19 +1,19 @@
 import type { Server } from 'node:http'
 import type { Http2SecureServer } from 'node:http2'
 import type { WebSocket } from 'ws'
+import type { MockCompiler } from '../compiler'
 import type {
   MockRequest,
   MockServerPluginOptions,
   MockWebsocketItem,
   WebSocketSetupContext,
 } from '../types'
-import type { Logger } from './logger'
-import type { MockCompiler } from './mockCompiler'
-import Cookies from 'cookies'
-import { pathToRegexp } from 'path-to-regexp'
-import colors from 'picocolors'
+import type { Logger } from '../utils'
+import ansis from 'ansis'
 import { WebSocketServer } from 'ws'
-import { doesProxyContextMatchUrl, parseParams, urlParse } from './utils'
+import { Cookies } from '../cookies'
+import { doesProxyContextMatchUrl, isPathMatch, urlParse } from '../utils'
+import { parseRequestParams } from './request'
 
 type PoolMap = Map<string, WSSMap>
 type WSSMap = Map<string, WebSocketServer>
@@ -79,7 +79,7 @@ export function mockWebSocket(
       wss.on('close', () => wssMap.delete(pathname))
       wss.on('error', (e) => {
         logger.error(
-          `${colors.red(
+          `${ansis.red(
             `WebSocket mock error at ${wss.path}`,
           )}\n${e}\n  at setup (${filepath})`,
           mock.log,
@@ -88,7 +88,7 @@ export function mockWebSocket(
     }
     catch (e) {
       logger.error(
-        `${colors.red(
+        `${ansis.red(
           `WebSocket mock error at ${wss.path}`,
         )}\n${e}\n  at setup (${filepath})`,
         mock.log,
@@ -144,14 +144,12 @@ export function mockWebSocket(
       return
     }
     const mockData = compiler.mockData
-    const mockUrl = Object.keys(mockData).find((key) => {
-      return pathToRegexp(key).test(pathname)
-    })
+    const mockUrl = Object.keys(mockData).find(key => isPathMatch(key, pathname))
     if (!mockUrl)
       return
 
     const mock = mockData[mockUrl].find((mock) => {
-      return mock.url && mock.ws && pathToRegexp(mock.url).test(pathname)
+      return mock.url && mock.ws && isPathMatch(mock.url, pathname)
     }) as MockWebsocketItem
 
     if (!mock)
@@ -182,14 +180,14 @@ export function mockWebSocket(
 
     request.query = query
     request.refererQuery = refererQuery
-    request.params = parseParams(mockUrl, pathname)
+    request.params = parseRequestParams(mockUrl, pathname)
     request.getCookie = cookies.get.bind(cookies)
 
     wss.handleUpgrade(request, socket, head, (ws) => {
       logger.info(
-        `${colors.magenta(colors.bold('WebSocket'))} ${colors.green(
+        `${ansis.magenta(ansis.bold('WebSocket'))} ${ansis.green(
           req.url,
-        )} connected ${colors.dim(`(${filepath})`)}`,
+        )} connected ${ansis.dim(`(${filepath})`)}`,
         mock.log,
       )
       wssContext.connectionList.push({ req: request, ws })

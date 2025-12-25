@@ -6,14 +6,12 @@ import path from 'node:path'
 import process from 'node:process'
 import { isArray, toArray } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
-import color from 'picocolors'
+import ansis from 'ansis'
 import { getPortPromise } from 'portfinder'
-import { buildMockServer } from './core/build'
-import { createMockCompiler } from './core/mockCompiler'
-import { createMockMiddleware } from './core/mockMiddleware'
-import { mockWebSocket } from './core/mockWebsocket'
-import { rewriteRequest } from './core/requestRecovery'
-import { resolvePluginOptions } from './core/resolvePluginOptions'
+import { buildMockServer } from './build'
+import { createMockCompiler } from './compiler'
+import { initMockMiddleware, mockWebSocket, rewriteRequest } from './core'
+import { resolvePluginOptions } from './options'
 
 export * from './types'
 
@@ -48,10 +46,10 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
 
       api.modifyRsbuildConfig((config) => {
         updateServerProxyConfigByHttpMock(config)
-        const mockMiddleware = createMockMiddleware(mockCompiler, resolvedOptions)
+        const mockMiddleware = initMockMiddleware(mockCompiler, resolvedOptions)
 
         config.dev ??= {}
-        config.dev.setupMiddlewares ??= []
+        config.dev.setupMiddlewares = toArray(config.dev.setupMiddlewares)
         config.dev.setupMiddlewares.push((middlewares, server) => {
           mockMiddleware(middlewares as any, () => server.sockWrite('static-changed'))
         })
@@ -101,7 +99,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
 }
 
 function onProxyError(err: Error, _req: http.IncomingMessage, res: http.ServerResponse) {
-  console.error(color.red(err?.stack || err.message))
+  console.error(ansis.red(err?.stack || err.message))
   res.statusCode = 500
   res.end()
 }

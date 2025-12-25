@@ -1,50 +1,56 @@
-import type { Token } from 'path-to-regexp'
-import type { MockMatchPriority } from '../types'
 /**
  * 规则匹配优先级
+ *
+ * @see https://github.com/pillarjs/path-to-regexp
  *
  * 由于一个请求可能会同时命中多个 匹配规则，需要计算 优先级，并根据优先级 从高到低 排序。
  *
  * 规则：
  * 1. 无参数的规则优先级最高
  * 2. 参数规则少的优先级高，对于参数数量相同的，根据参数所在位置，参数越靠后的优先级越高
- * 3. 命名参数优先级比非命名参数优先级高
- * 4. 对于 有修饰符 *+?, 优先级需要对比无修饰符的参数进行降低，
- * 5. 同位置修饰符， * 比 + 的优先级低
- * 6. 对于 (.*) 的参数规则，无论其出现在任何位置，都拥有该位置的最低优先级，(.*)? 比 (.*) 优先级更低
+ * 3. 对于可选参数，优先级应该比必填参数低
+ * 4. 对于通配符的参数，优先级应该比其他参数低
  */
+import type { Parameter, Text, Token, Wildcard } from 'path-to-regexp'
+import type { MockMatchPriority } from '../types'
 import {
   isArray,
   isEmptyObject,
-  isString,
   sortBy,
   uniq,
 } from '@pengzhanbo/utils'
 import { parse, pathToRegexp } from 'path-to-regexp'
+import { isPathMatch } from '../utils'
 
-const tokensCache: Record<string, Token[]> = {}
+type PathToken = (Text & { optional?: boolean })
+  | (Parameter & { optional?: boolean })
+  | (Wildcard & { optional?: boolean })
+
+const tokensCache: Record<string, PathToken[]> = {}
 
 function getTokens(rule: string) {
   if (tokensCache[rule])
     return tokensCache[rule]
-
-  const tks = parse(rule)
-  const tokens: Token[] = []
-  for (const tk of tks) {
-    if (!isString(tk)) {
-      tokens.push(tk)
-    }
-    else {
-      const hasPrefix = tk[0] === '/'
-      const subTks = hasPrefix ? tk.slice(1).split('/') : tk.split('/')
-      tokens.push(
-        `${hasPrefix ? '/' : ''}${subTks[0]}`,
-        ...subTks.slice(1).map(t => `/${t}`),
-      )
+  const res: PathToken[] = []
+  const flatten = (tokens: Token[], group = false) => {
+    for (const token of tokens) {
+      if (token.type === 'text') {
+        const sub = token.value.split('/').filter(Boolean)
+        sub.length && res.push(...sub.map(v => ({ type: 'text', value: v } as PathToken)))
+      }
+      else if (token.type === 'group') {
+        flatten(token.tokens, true)
+      }
+      else {
+        if (group)
+          (token as PathToken).optional = true
+        res.push(token)
+      }
     }
   }
-  tokensCache[rule] = tokens
-  return tokens
+  flatten(parse(rule).tokens)
+  tokensCache[rule] = res
+  return res
 }
 
 function getHighest(rules: string[]) {
@@ -58,7 +64,7 @@ function sortFn(rule: string) {
   let w = 0
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]
-    if (!isString(token))
+    if (token.type !== 'text')
       w += 10 ** (i + 1)
 
     w += 10 ** (i + 1)
@@ -73,7 +79,7 @@ function preSort(rules: string[]) {
   for (const rule of rules) {
     const tokens = getTokens(rule)
 
-    const len = tokens.filter(token => typeof token !== 'string').length
+    const len = tokens.filter(token => token.type !== 'text').length
     if (!preMatch[len])
       preMatch[len] = []
     preMatch[len].push(rule)
@@ -90,7 +96,7 @@ function defaultPriority(rules: string[]) {
 
   return sortBy(rules, (rule) => {
     const tokens = getTokens(rule)
-    const dym = tokens.filter(token => typeof token !== 'string')
+    const dym = tokens.filter(token => token.type !== 'text')
     if (dym.length === 0)
       return 0
 
@@ -98,47 +104,34 @@ function defaultPriority(rules: string[]) {
     let exp = 0
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i]
-      const isDynamic = !isString(token)
-      const {
-        pattern = '',
-        modifier,
-        prefix,
-        name,
-      } = isDynamic ? token : ({} as any)
-      const isGlob = pattern && pattern.includes('.*')
-      const isSlash = prefix === '/'
-      const isNamed = isString(name)
+      // 动态参数，包括命名参数、可选参数、剩余参数通配符
+      const isDynamic = token.type !== 'text'
+      // 通配符 剩余参数 foo/*bar
+      //                     ^^^^
+      const isWildcard = token.type === 'wildcard'
+      // 可选参数: foo{/:bar}  可选剩余参数 foo{/*bar}
+      //              ^^^^^^^                  ^^^^^^^
+      const isOptional = !!token.optional
 
-      exp += isDynamic && isSlash ? 1 : 0
+      exp += isDynamic ? 1 : 0
 
       // 如果规则末尾是通配，则优先级最低
-      if (i === tokens.length - 1 && isGlob) {
-        weight += 5 * 10 ** (tokens.length === 1 ? highest + 1 : highest)
+      if (i === tokens.length - 1 && isWildcard) {
+        weight += (isOptional ? 5 : 4) * 10 ** (tokens.length === 1 ? highest + 1 : highest)
       }
       else {
         // 非末尾的通配，优先级次低
-        if (isGlob) {
+        if (isWildcard) {
           weight += 3 * 10 ** (highest - 1)
         }
-        else if (pattern) {
-          if (isSlash) {
-            // 具名参数优先级高于非命名参数
-            weight += (isNamed ? 2 : 1) * 10 ** (exp + 1)
-          }
-          else {
-            // :foo{-:bar}{-:baz}? 优先级高于 :foo
-            weight -= 1 * 10 ** exp
-          }
+        else {
+          weight += 2 * 10 ** exp
+        }
+        // 降低可选参数优先级
+        if (isOptional) {
+          weight += 10 ** exp
         }
       }
-      if (modifier === '+')
-        weight += 1 * 10 ** (highest - 1)
-
-      if (modifier === '*')
-        weight += 1 * 10 ** (highest - 1) + 1
-
-      if (modifier === '?')
-        weight += 1 * 10 ** (exp + (isSlash ? 1 : 0))
     }
     return weight
   })
@@ -151,7 +144,7 @@ export function matchingWeight(
 ): string[] {
   // 基于默认规则下进行优先级排序
   let matched = defaultPriority(
-    preSort(rules.filter(rule => pathToRegexp(rule).test(url))),
+    preSort(rules.filter(rule => isPathMatch(rule, url))),
   )
 
   const { global = [], special = {} } = priority
@@ -186,7 +179,7 @@ export function matchingWeight(
   if (lowerRules.includes(matched[0])) {
     if (
       when.length === 0
-      || when.some(path => pathToRegexp(path).test(url))
+      || when.some(path => pathToRegexp(path).regexp.test(url))
     ) {
       // 特殊规则插入到最前，保证特殊规则优先
       matched = uniq([specialRule, ...matched])
@@ -196,12 +189,16 @@ export function matchingWeight(
   return matched
 }
 
+/**
+ * 将规则分为静态和动态两部分
+ */
 function twoPartMatch(rules: string[]) {
   const statics: string[] = []
   const dynamics: string[] = []
   for (const rule of rules) {
     const tokens = getTokens(rule)
-    const dym = tokens.filter(token => typeof token !== 'string')
+    // 如果 tokens 中包含动态参数，则为动态规则
+    const dym = tokens.filter(token => token.type !== 'text')
     if (dym.length > 0)
       dynamics.push(rule)
     else statics.push(rule)
