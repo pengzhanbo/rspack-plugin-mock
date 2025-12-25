@@ -10,7 +10,7 @@
   <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91&label=rspack">
   <img alt="npm peer dependency version" src="https://img.shields.io/npm/dependency-version/rspack-plugin-mock/peer/@rsbuild/core?style=flat-square&colorA=564341&colorB=EDED91&label=rsbuild">
   <img alt="npm" src="https://img.shields.io/npm/dm/rspack-plugin-mock?style=flat-square&colorA=564341&colorB=EDED91">
-  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/pengzhanbo/rspack-plugin-mock/lint.yml?style=flat-square&colorA=564341&colorB=EDED91">
+  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/pengzhanbo/rspack-plugin-mock/release.yaml?style=flat-square&colorA=564341&colorB=EDED91">
 </p>
 
 <p align="center">
