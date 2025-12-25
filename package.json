@@ -2,7 +2,7 @@
   "name": "rspack-plugin-mock",
   "type": "module",
   "version": "1.2.0",
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@10.26.2",
   "description": "inject api mock server to development server",
   "author": "pengzhanbo <q942450674@outlook.com> (https://github.com/pengzhanbo)",
   "license": "MIT",
@@ -25,53 +25,37 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
       }
     },
     "./server": {
       "import": {
-        "types": "./dist/server.d.ts",
-        "default": "./dist/server.js"
-      },
-      "require": {
-        "types": "./dist/server.d.cts",
-        "default": "./dist/server.cjs"
+        "types": "./dist/server.d.mts",
+        "default": "./dist/server.mjs"
       }
     },
     "./rsbuild": {
       "import": {
-        "types": "./dist/rsbuild.d.ts",
-        "default": "./dist/rsbuild.js"
-      },
-      "require": {
-        "types": "./dist/rsbuild.d.cts",
-        "default": "./dist/rsbuild.cjs"
+        "types": "./dist/rsbuild.d.mts",
+        "default": "./dist/rsbuild.mjs"
       }
     },
     "./helper": {
       "import": {
-        "types": "./dist/helper.d.ts",
-        "default": "./dist/helper.js"
-      },
-      "require": {
-        "types": "./dist/helper.d.cts",
-        "default": "./dist/helper.cjs"
+        "types": "./dist/helper.d.mts",
+        "default": "./dist/helper.mjs"
       }
     },
     "./package.json": "./package.json"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
   "files": [
     "dist"
   ],
   "engines": {
-    "node": ">=18.20.0",
+    "node": ">=20.19.0",
     "pnpm": ">=9"
   },
   "scripts": {
@@ -96,45 +80,45 @@
     }
   },
   "dependencies": {
-    "@pengzhanbo/utils": "^2.1.0",
-    "@rollup/pluginutils": "^5.2.0",
-    "chokidar": "3.6.0",
+    "@pengzhanbo/utils": "^2.1.2",
+    "ansis": "^4.2.0",
+    "chokidar": "^5.0.0",
     "co-body": "^6.2.0",
-    "cookies": "^0.9.1",
     "cors": "^2.8.5",
-    "debug": "^4.4.1",
-    "fast-glob": "^3.3.3",
+    "debug": "^4.4.3",
     "formidable": "^3.5.4",
     "http-status": "^2.1.0",
     "is-core-module": "^2.16.1",
     "json5": "^2.2.3",
-    "memfs": "^4.17.2",
-    "mime-types": "^3.0.1",
-    "path-to-regexp": "6.3.0",
-    "picocolors": "^1.1.1",
-    "portfinder": "^1.0.37",
+    "local-pkg": "^1.1.2",
+    "memfs": "^4.51.1",
+    "mime-types": "^3.0.2",
+    "path-to-regexp": "^8.3.0",
+    "picomatch": "^4.0.3",
+    "portfinder": "^1.0.38",
+    "tinyglobby": "^0.2.15",
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@pengzhanbo/eslint-config": "^1.34.0",
-    "@rsbuild/core": "^1.4.3",
-    "@rspack/core": "^1.4.2",
+    "@pengzhanbo/eslint-config": "^1.45.0",
+    "@rsbuild/core": "^1.6.15",
+    "@rspack/core": "^1.6.8",
     "@types/co-body": "^6.1.3",
-    "@types/cookies": "^0.9.1",
     "@types/cors": "^2.8.19",
     "@types/debug": "^4.1.12",
-    "@types/formidable": "^3.4.5",
+    "@types/formidable": "^3.4.6",
     "@types/is-core-module": "^2.2.2",
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^22.16.0",
+    "@types/node": "^25.0.3",
+    "@types/picomatch": "^4.0.2",
     "@types/ws": "^8.18.1",
-    "bumpp": "^10.2.0",
+    "bumpp": "^10.3.2",
     "conventional-changelog-cli": "^5.0.0",
-    "eslint": "^9.30.1",
+    "eslint": "^9.39.2",
     "husky": "^9.1.7",
-    "lint-staged": "^16.1.2",
-    "tsdown": "^0.12.9",
-    "typescript": "^5.8.3"
+    "lint-staged": "^16.2.7",
+    "tsdown": "^0.18.3",
+    "typescript": "^5.9.3"
   },
   "lint-staged": {
     "*": "eslint --fix"
