@@ -1,90 +1,196 @@
-import type { RspackOptionsNormalized, RspackPluginInstance } from '@rspack/core'
-import type { CorsOptions } from 'cors'
-import type http from 'node:http'
-import type { MockCompiler } from './mockCompiler'
-import type { ResolvePluginOptions } from './resolvePluginOptions'
-import cors from 'cors'
-import { pathToRegexp } from 'path-to-regexp'
-import { baseMiddleware } from './baseMiddleware'
-import { doesProxyContextMatchUrl, urlParse } from './utils'
+import type * as http from 'node:http'
+import type { MockCompiler } from '../compiler/mockCompiler'
+import type {
+  MockHttpItem,
+  MockRequest,
+  MockResponse,
+  MockServerPluginOptions,
+} from '../types'
+import type { Logger } from '../utils'
+import type { Middleware } from './types'
+import { isFunction, timestamp } from '@pengzhanbo/utils'
+import ansis from 'ansis'
+import { Cookies } from '../cookies'
+import { doesProxyContextMatchUrl, urlParse } from '../utils'
+import { fineMockData } from './findMockData'
+import { matchingWeight } from './matchingWeight'
+import {
+  parseRequestBody,
+  parseRequestParams,
+  requestLog,
+} from './request'
+import { collectRequest } from './requestRecovery'
+import {
+  provideResponseCookies,
+  provideResponseHeaders,
+  provideResponseStatus,
+  responseRealDelay,
+  sendResponseData,
+} from './response'
 
-export interface MiddlewareOptions {
-  alias: Record<string, false | string | (string | false)[]>
+export interface BaseMiddlewareOptions extends Pick<MockServerPluginOptions, 'formidableOptions' | 'cookiesOptions' | 'bodyParserOptions' | 'priority'> {
   proxies: (string | ((pathname: string, req: any) => boolean))[]
-  context?: string
-  plugins: RspackPluginInstance[]
+  logger: Logger
 }
 
-export function createMockMiddleware(
+export function baseMiddleware(
   compiler: MockCompiler,
-  options: ResolvePluginOptions,
-): (middlewares: Middleware[], reload?: () => void) => Middleware[] {
-  return function mockMiddleware(middlewares, reload) {
-    middlewares.unshift(baseMiddleware(compiler, options))
+  {
+    formidableOptions = {},
+    bodyParserOptions = {},
+    proxies,
+    cookiesOptions,
+    logger,
+    priority = {},
+  }: BaseMiddlewareOptions,
+): Middleware {
+  return async function (
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    next: (err?: any) => void,
+  ) {
+    const startTime = timestamp()
+    const { query, pathname } = urlParse(req.url!)
 
-    const corsMiddleware = createCorsMiddleware(compiler, options)
-    if (corsMiddleware) {
-      middlewares.unshift(corsMiddleware)
+    // 预先过滤不符合路径前缀的请求
+    if (
+      !pathname
+      || proxies.length === 0
+      || !proxies.some(context => doesProxyContextMatchUrl(context, req.url!, req))
+    ) {
+      return next()
     }
-    if (options.reload) {
-      compiler.on('update', () => reload?.())
+
+    const mockData = compiler.mockData
+    // 对满足匹配规则的配置进行优先级排序
+    const mockUrls = matchingWeight(Object.keys(mockData), pathname, priority)
+
+    if (mockUrls.length === 0) {
+      return next()
     }
 
-    return middlewares
-  }
-}
+    // 记录请求流中被消费的数据，形成备份，当当前请求无法继续时，可以从备份中恢复请求流
+    collectRequest(req)
 
-function createCorsMiddleware(
-  compiler: MockCompiler,
-  options: ResolvePluginOptions,
-): Middleware | undefined {
-  let corsOptions: CorsOptions = {}
+    const { query: refererQuery } = urlParse(req.headers.referer || '')
+    const reqBody = await parseRequestBody(req, formidableOptions, bodyParserOptions)
+    const cookies = new Cookies(req, res, cookiesOptions)
+    const getCookie = cookies.get.bind(cookies)
 
-  // enable cors by default
-  const enabled = options.cors !== false
-
-  if (enabled) {
-    corsOptions = {
-      ...corsOptions,
-      ...(typeof options.cors === 'boolean' ? {} : options.cors),
-    }
-  }
-
-  const proxies = options.proxies
-
-  return !enabled
-    ? undefined
-    : function (req: http.IncomingMessage, res: http.ServerResponse, next: (err?: any) => void) {
-      const { pathname } = urlParse(req.url!)
-      if (
-        !pathname
-        || proxies.length === 0
-        || !proxies.some(context =>
-          doesProxyContextMatchUrl(context, req.url!, req),
-        )
-      ) {
-        return next()
+    const method = req.method!.toUpperCase()
+    let mock: MockHttpItem | undefined
+    let _mockUrl: string | undefined
+    // 查找匹配的mock，仅找出首个匹配的配置项后立即结束
+    for (const mockUrl of mockUrls) {
+      mock = fineMockData(mockData[mockUrl], logger, {
+        pathname,
+        method,
+        request: {
+          query,
+          refererQuery,
+          body: reqBody,
+          headers: req.headers,
+          getCookie,
+        },
+      })
+      if (mock) {
+        _mockUrl = mockUrl
+        break
       }
+    }
 
-      const mockData = compiler.mockData
-
-      const mockUrl = Object.keys(mockData).find(key =>
-        pathToRegexp(key).test(pathname),
+    if (!mock) {
+      const matched = mockUrls
+        .map(m =>
+          m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m),
+        )
+        .join(', ')
+      logger.warn(
+        `${ansis.green(
+          pathname,
+        )} matches  ${matched} , but mock data is not found.`,
       )
 
-      if (!mockUrl)
-        return next()
-
-      cors(corsOptions)(req, res, next)
+      return next()
     }
+
+    const request = req as MockRequest
+    const response = res as MockResponse
+
+    // provide request 往请求实例中注入额外的请求信息
+    request.body = reqBody
+    request.query = query
+    request.refererQuery = refererQuery
+    request.params = parseRequestParams(mock.url, pathname)
+    request.getCookie = getCookie
+
+    // provide response
+    response.setCookie = cookies.set.bind(cookies)
+
+    const {
+      body,
+      delay,
+      type = 'json',
+      response: responseFn,
+      status = 200,
+      statusText,
+      log: logLevel,
+      __filepath__: filepath,
+    } = mock as MockHttpItem & { __filepath__: string }
+
+    // provide headers
+    provideResponseStatus(response, status, statusText)
+    await provideResponseHeaders(request, response, mock, logger)
+    await provideResponseCookies(request, response, mock, logger)
+
+    logger.info(requestLog(request, filepath), logLevel)
+    logger.debug(
+      `${ansis.magenta('DEBUG')} ${ansis.underline(
+        pathname,
+      )}  matches: [ ${mockUrls
+        .map(m =>
+          m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m),
+        )
+        .join(', ')} ]\n`,
+    )
+
+    if (body) {
+      try {
+        const content = isFunction(body) ? await body(request) : body
+        await responseRealDelay(startTime, delay)
+        sendResponseData(response, content, type)
+      }
+      catch (e) {
+        logger.error(
+          `${ansis.red(
+            `mock error at ${pathname}`,
+          )}\n${e}\n  at body (${ansis.underline(filepath)})`,
+          logLevel,
+        )
+        provideResponseStatus(response, 500)
+        res.end('')
+      }
+      return
+    }
+
+    if (responseFn) {
+      try {
+        await responseRealDelay(startTime, delay)
+        await responseFn(request, response, next)
+      }
+      catch (e) {
+        logger.error(
+          `${ansis.red(
+            `mock error at ${pathname}`,
+          )}\n${e}\n  at response (${ansis.underline(filepath)})`,
+          logLevel,
+        )
+        provideResponseStatus(response, 500)
+        res.end('')
+      }
+      return
+    }
+
+    res.end('')
+  }
 }
-
-type SetupMiddlewaresFn = NonNullable<
-  NonNullable<RspackOptionsNormalized['devServer']>['setupMiddlewares']
->
-
-export type Middleware = SetupMiddlewaresFn extends
-(middlewares: (infer T)[], devServer: any) => void ? T : never
-
-export type Server = SetupMiddlewaresFn extends
-(middlewares: any, devServer: infer T) => void ? T : never

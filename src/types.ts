@@ -1,11 +1,11 @@
 import type { Options as COBodyOptions } from 'co-body'
-import type Cookies from 'cookies'
 import type { CorsOptions } from 'cors'
 import type formidable from 'formidable'
 import type { Buffer } from 'node:buffer'
 import type http from 'node:http'
 import type { Readable } from 'node:stream'
 import type { WebSocketServer } from 'ws'
+import type { Cookies, CookiesOption, SetCookieOption } from './cookies'
 
 /**
  * Configure plugin
@@ -47,6 +47,15 @@ export interface MockServerPluginOptions {
    * @default process.cwd()
    */
   cwd?: string
+
+  /**
+   * The directory to store mock files
+   *
+   * 存储 mock 文件的目录
+   *
+   * @default 'mock'
+   */
+  dir?: string
 
   /**
    * glob string matching mock includes files
@@ -103,7 +112,7 @@ export interface MockServerPluginOptions {
    * cookies options
    * @see [cookies](https://github.com/pillarjs/cookies#new-cookiesrequest-response--options)
    */
-  cookiesOptions?: Cookies.Option
+  cookiesOptions?: CookiesOption
 
   /**
    * Configure to `co-body`
@@ -308,7 +317,7 @@ export interface ExtraRequest {
    * 获取 请求中携带的 cookie
    * @see [cookies](https://github.com/pillarjs/cookies#cookiesgetname--options)
    */
-  getCookie: (name: string, option?: Cookies.GetOption) => string | undefined
+  getCookie: Cookies['get']
 }
 
 export type MockRequest = http.IncomingMessage & ExtraRequest
@@ -320,11 +329,7 @@ export type MockResponse = http.ServerResponse<http.IncomingMessage> & {
    * 向请求响应中设置 cookie
    * @see [cookies](https://github.com/pillarjs/cookies#cookiessetname--values--options)
    */
-  setCookie: (
-    name: string,
-    value?: string | null,
-    option?: Cookies.SetOption,
-  ) => void
+  setCookie: Cookies['set']
 }
 
 type ResponseBodyFn = (
@@ -333,7 +338,7 @@ type ResponseBodyFn = (
 
 type ResponseHeaderFn = (request: MockRequest) => Headers | Promise<Headers>
 
-type CookieValue = string | [string, Cookies.SetOption]
+type CookieValue = string | [string, SetCookieOption]
 type ResponseCookies = Record<string, CookieValue>
 type ResponseCookiesFn = (
   request: MockRequest,

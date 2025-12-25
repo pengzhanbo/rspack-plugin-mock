@@ -1,9 +1,10 @@
 import type { RspackPluginInstance } from '@rspack/core'
-import type { MockServerPluginOptions, ServerBuildOption } from '../types'
-import type { Logger } from './logger'
+import type { MockServerPluginOptions, ServerBuildOption } from './types'
+import type { Logger } from './utils'
 import process from 'node:process'
 import { isBoolean, toArray } from '@pengzhanbo/utils'
-import { createLogger } from './logger'
+import ansis from 'ansis'
+import { createLogger } from './utils'
 
 export interface ResolvedCompilerOptions {
   alias: Record<string, false | string | (string | false)[]>
@@ -25,8 +26,9 @@ export function resolvePluginOptions(
     prefix = [],
     wsPrefix = [],
     cwd,
-    include = ['mock/**/*.mock.{js,ts,cjs,mjs,json,json5}'],
-    exclude = ['**/node_modules/**', '**/.vscode/**', '**/.git/**'],
+    dir = 'mock',
+    include = ['**/*.mock.{js,ts,cjs,mjs,json,json5}'],
+    exclude = [],
     reload = false,
     log = 'info',
     cors = true,
@@ -36,18 +38,24 @@ export function resolvePluginOptions(
     bodyParserOptions = {},
     priority = {},
   }: MockServerPluginOptions,
-  { alias, context, plugins, proxies }: Omit<ResolvedCompilerOptions, 'wsProxies'>,
+  { alias, context, plugins, proxies: rawProxies }: Omit<ResolvedCompilerOptions, 'wsProxies'>,
 ): ResolvePluginOptions {
   const logger = createLogger(
     'rspack:mock',
     isBoolean(log) ? (log ? 'info' : 'error') : log,
   )
-  prefix = toArray(prefix)
+
+  const proxies = [...toArray(prefix), ...rawProxies]
+  const wsProxies = toArray(wsPrefix)
+
+  if (!proxies.length && !wsProxies.length)
+    logger.warn(`No proxy was configured, mock server will not work. See ${ansis.cyan('https://vite-plugin-mock-dev-server.netlify.app/guide/usage')}`)
 
   return {
     prefix,
     wsPrefix,
     cwd: cwd || context || process.cwd(),
+    dir,
     include,
     exclude,
     reload,
@@ -61,19 +69,17 @@ export function resolvePluginOptions(
     bodyParserOptions,
     priority,
     build: build
-      ? Object.assign(
-          {
-            serverPort: 8080,
-            dist: 'mockServer',
-            log: 'error',
-          },
-          typeof build === 'object' ? build : {},
-        )
+      ? {
+          serverPort: 8080,
+          dist: 'mockServer',
+          log: 'error',
+          ...typeof build === 'object' ? build : {},
+        }
       : false,
     alias,
     plugins,
-    proxies: [...proxies, ...prefix],
-    wsProxies: toArray(wsPrefix),
+    proxies,
+    wsProxies,
     logger,
   }
 }

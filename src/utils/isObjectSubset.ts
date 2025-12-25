@@ -1,18 +1,4 @@
-import type { ExtraRequest } from '../types'
 import { isArray, isPlainObject } from '@pengzhanbo/utils'
-
-export function validate(
-  request: ExtraRequest,
-  validator: Partial<ExtraRequest>,
-): boolean {
-  return (
-    isObjectSubset(request.headers, validator.headers)
-    && isObjectSubset(request.body, validator.body)
-    && isObjectSubset(request.params, validator.params)
-    && isObjectSubset(request.query, validator.query)
-    && isObjectSubset(request.refererQuery, validator.refererQuery)
-  )
-}
 
 /**
  * Checks if target object is a subset of source object.
@@ -53,5 +39,6 @@ function isIncluded(source: unknown, target: unknown): boolean {
   if (isPlainObject(source) && isPlainObject(target))
     return isObjectSubset(source, target)
 
+  // 相比于 === ， 该方法能够正确的处理 NaN、 0、 +0、 -0 等特殊情况
   return Object.is(source, target)
 }

@@ -1,19 +1,16 @@
 import { createReadStream } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import * as mime from 'mime-types'
 import { defineMock } from 'rspack-plugin-mock/helper'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /**
  * 模拟一个 静态资源服务
  */
 export default defineMock({
-  url: '/static/:filepath(.*)',
+  url: '/static/*filepath',
   method: 'GET',
   headers(request) {
-    const { filepath } = request.params
+    const filepath = request.params.filepath.join('/')
     const filename = path.basename(filepath)
     return {
       'Content-Type': mime.lookup(filename) || 'text/plain',
@@ -21,6 +18,6 @@ export default defineMock({
   },
   body(request) {
     const { filepath } = request.params
-    return createReadStream(path.join(__dirname, 'static', filepath))
+    return createReadStream(path.join(import.meta.dirname, 'static', filepath))
   },
 })
