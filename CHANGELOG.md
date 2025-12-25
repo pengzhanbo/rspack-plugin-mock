@@ -1,3 +1,12 @@
+# [1.3.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.2.0...v1.3.0) (2025-12-25)
+
+
+### Performance Improvements
+
+* update deps to latest ([38cc1c6](https://github.com/pengzhanbo/rspack-plugin-mock/commit/38cc1c6f321dcf74afa2e07af8f3989f09b09831))
+
+
+
 # [1.2.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.1.0...v1.2.0) (2025-07-03)
 
 
