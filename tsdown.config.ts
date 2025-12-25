@@ -1,12 +1,23 @@
-import type { Options } from 'tsdown'
+import type { UserConfig } from 'tsdown'
 import { defineConfig } from 'tsdown'
 
-export default defineConfig([{
+const config: UserConfig[] = defineConfig([{
   entry: ['src/json5-loader.cts'],
   format: 'cjs',
+  minify: true,
   dts: false,
 }, {
-  entry: ['src/{index,rsbuild,helper,server}.ts'],
-  format: ['cjs', 'esm'],
+  entry: {
+    index: 'src/index.ts',
+    rsbuild: 'src/rsbuild.ts',
+    helper: 'src/helper/index.ts',
+    server: 'src/server.ts',
+  },
+  format: 'esm',
+  shims: true,
+  sourcemap: false,
+  minify: true,
   dts: true,
-}]) as Options
+}])
+
+export default config

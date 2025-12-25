@@ -6,13 +6,16 @@
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "strict": true,
-    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "useUnknownInCatchVariables": false,
     "declaration": true,
+    "sourceMap": false,
     "esModuleInterop": true,
     "isolatedDeclarations": true,
     "skipLibCheck": true
   },
   "exclude": [
-    "examples/**"
+    "examples/**",
+    "dist/**"
   ]
 }
