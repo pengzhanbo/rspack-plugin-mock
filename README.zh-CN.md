@@ -17,11 +17,16 @@
 <a href="./README.md">English</a> | <span>简体中文</span>
 </p>
 
+> [!IMPORTANT]
+> 从插件 2.0 版本开始，仅支持 `rspack@2.x` 版本 和 `rsbuild@2.x` 版本.
+>
+> 如果您使用的是 `rspack@1.x` 或 `rsbuild@1.x` 版本，请使用 `rspack-plugin-mock@1.x` 版本.
+
 ## 特性
 
 - ⚡️ 轻量，灵活，快速
 - 🧲 非注入式，对客户端代码无侵入
-- 💡 ESModule/commonjs
+- 💡 纯 ESModule
 - 🦾 Typescript
 - 🔥 热更新
 - 🏷 支持 `.[cm]?js`/ `.ts` / `json` / `json5` 编写 mock 数据

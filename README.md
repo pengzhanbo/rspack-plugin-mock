@@ -17,6 +17,11 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 <span>English</span> | <a href="./README.zh-CN.md">简体中文</a>
 </p>
 
+> [!IMPORTANT]
+> Starting from version 2.0 of the plugin, only `rspack@2.x` and `rsbuild@2.x` versions are supported.
+>
+> If you are using `rspack@1.x` or `rsbuild@1.x`, please use version `rspack-plugin-mock@1.x`.
+
 ## Features
 
 - ⚡️ Lightweight, Flexible, Fast.
