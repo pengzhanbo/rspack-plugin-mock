@@ -32,7 +32,7 @@ export function createCorsMiddleware(
         !pathname
         || proxies.length === 0
         || !proxies.some(context =>
-          doesProxyContextMatchUrl(context, req.url!, req),
+          doesProxyContextMatchUrl(context, req),
         )
       ) {
         return next()

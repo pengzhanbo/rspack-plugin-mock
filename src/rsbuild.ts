@@ -2,6 +2,7 @@ import type { ProxyOptions, RsbuildConfig, RsbuildPlugin } from '@rsbuild/core'
 import type * as http from 'node:http'
 import type { MockServerPluginOptions } from './types'
 import { createServer } from 'node:http'
+import { Socket } from 'node:net'
 import path from 'node:path'
 import process from 'node:process'
 import { isArray, toArray } from '@pengzhanbo/utils'
@@ -10,7 +11,7 @@ import ansis from 'ansis'
 import { getPortPromise } from 'portfinder'
 import { buildMockServer } from './build'
 import { createMockCompiler } from './compiler'
-import { initMockMiddleware, mockWebSocket, rewriteRequest } from './core'
+import { baseMiddleware, mockWebSocket, rewriteRequest } from './core'
 import { resolvePluginOptions } from './options'
 
 export * from './types'
@@ -46,12 +47,15 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
 
       api.modifyRsbuildConfig((config) => {
         updateServerProxyConfigByHttpMock(config)
-        const mockMiddleware = initMockMiddleware(mockCompiler, resolvedOptions)
 
-        config.dev ??= {}
-        config.dev.setupMiddlewares = toArray(config.dev.setupMiddlewares)
-        config.dev.setupMiddlewares.push((middlewares, server) => {
-          mockMiddleware(middlewares as any, () => server.sockWrite('static-changed'))
+        // 注册 mock 中间件
+        config.server ??= {}
+        config.server.setup = toArray(config.server.setup)
+        config.server.setup.push(({ server, action }) => {
+          server.middlewares.use(baseMiddleware(mockCompiler, resolvedOptions))
+          if (resolvedOptions.reload && action === 'dev') {
+            mockCompiler.on('update', () => server.sockWrite('static-changed'))
+          }
         })
       })
 
@@ -92,15 +96,16 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
       })
 
       api.onAfterStartDevServer(startMockServer)
-      api.onAfterStartProdServer(startMockServer)
+      api.onAfterStartPreviewServer(startMockServer)
       api.onExit(close)
     },
   }
 }
 
-function onProxyError(err: Error, _req: http.IncomingMessage, res: http.ServerResponse) {
+function onProxyError(err: Error, _req: http.IncomingMessage, res: http.ServerResponse | Socket) {
   console.error(ansis.red(err?.stack || err.message))
-  res.statusCode = 500
+  if (!(res instanceof Socket))
+    res.statusCode = 500
   res.end()
 }
 
@@ -111,49 +116,44 @@ function updateServerProxyConfigByHttpMock(config: RsbuildConfig) {
   if (isArray(config.server.proxy)) {
     config.server.proxy = config.server.proxy.map((item) => {
       if (typeof item !== 'function' && !item.ws) {
-        const onProxyReq = item.onProxyReq
-        const onError = item.onError
+        const on = (item.on ??= {})
+        const onProxyReq = on.proxyReq
+        const onError = on.error
         return {
           ...item,
-          onError: onError || onProxyError,
-          onProxyReq: (proxyReq, req, ...args) => {
-            onProxyReq?.(proxyReq, req, ...args)
-            rewriteRequest(proxyReq, req)
+          on: {
+            ...on,
+            error: onError || onProxyError,
+            proxyReq: (proxyReq, req, ...args) => {
+              onProxyReq?.(proxyReq, req, ...args)
+              rewriteRequest(proxyReq, req)
+            },
           },
         }
       }
       return item
     })
   }
-  else if ('target' in config.server.proxy) {
-    const onProxyReq = config.server.proxy.onProxyReq as (...args: any[]) => void
-    config.server.proxy.onProxyReq = (proxyReq, req, ...args) => {
-      onProxyReq?.(proxyReq, req, ...args)
-      rewriteRequest(proxyReq, req)
-    }
-    config.server.proxy.onError ??= onProxyError
-  }
   else if (config.server.proxy) {
-    const proxy = config.server.proxy as Record<string, any>
+    const proxy = config.server.proxy
     Object.keys(proxy).forEach((key) => {
       const target = proxy[key]
       const options = typeof target === 'string' ? { target } : target
       if (options.ws)
         return
 
-      const { onProxyReq, onError, ...rest } = options
+      const { on, ...rest } = options
 
       proxy[key] = {
         ...rest,
-        onProxyReq: (
-          proxyReq: http.ClientRequest,
-          req: http.IncomingMessage,
-          ...args: any[]
-        ) => {
-          onProxyReq?.(proxyReq, req, ...args)
-          rewriteRequest(proxyReq, req)
+        on: {
+          ...on,
+          proxyReq: (proxyReq, req, ...args) => {
+            on?.proxyReq?.(proxyReq, req, ...args)
+            rewriteRequest(proxyReq, req)
+          },
+          error: on?.error || onProxyError,
         },
-        onError: onError || onProxyError,
       }
     })
   }
@@ -168,30 +168,30 @@ function updateServerProxyConfigByWSMock(config: RsbuildConfig, wsPrefix: string
   const used = new Set<string>()
 
   function updateProxy(item: ProxyOptions) {
-    if (isArray(item.context)) {
-      item.context = item.context.filter(has)
+    if (isArray(item.pathFilter)) {
+      item.pathFilter = item.pathFilter.filter(has)
     }
-    else if (has(item.context)) {
-      used.add(item.context as string)
+    else if (has(item.pathFilter)) {
+      used.add(item.pathFilter as string)
       item.target = wsTarget
     }
   }
 
   if (isArray(proxy)) {
     for (const item of proxy) {
-      if (typeof item !== 'function' && item.context && item.ws) {
+      if (typeof item !== 'function' && item.pathFilter && item.ws) {
         updateProxy(item)
       }
     }
-    prefix.filter(context => !used.has(context))
-      .forEach(context => proxy.push({ context, target: wsTarget }))
+    prefix.filter(pathFilter => !used.has(pathFilter))
+      .forEach(pathFilter => proxy.push({ pathFilter, target: wsTarget }))
   }
   else if ('target' in proxy) {
     if (proxy.ws) {
       updateProxy(proxy)
       const list = (config.server!.proxy = [proxy])
-      prefix.filter(context => !used.has(context))
-        .forEach(context => list.push({ context, target: wsTarget }))
+      prefix.filter(pathFilter => !used.has(pathFilter))
+        .forEach(pathFilter => list.push({ pathFilter, target: wsTarget }))
     }
   }
   else {
@@ -215,19 +215,15 @@ function resolveConfigProxies(config: RsbuildConfig): Proxies {
 
   if (isArray(proxy)) {
     for (const item of proxy) {
-      if (typeof item !== 'function' && item.context && !item.ws) {
-        proxies.push(...toArray(item.context))
+      if (typeof item !== 'function' && item.pathFilter && !item.ws) {
+        proxies.push(...toArray(item.pathFilter))
       }
     }
   }
-  else if ('target' in proxy) {
-    if (!proxy.ws)
-      proxies.push(...toArray(proxy.context as any))
-  }
   else {
-    Object.entries(proxy).forEach(([context, opt]) => {
+    Object.entries(proxy).forEach(([pathFilter, opt]) => {
       if (typeof opt === 'string' || !opt.ws)
-        proxies.push(context)
+        proxies.push(pathFilter)
     })
   }
   return proxies

@@ -7,12 +7,11 @@ import type {
   MockServerPluginOptions,
 } from '../types'
 import type { Logger } from '../utils'
-import type { Middleware } from './types'
-import { isFunction, timestamp } from '@pengzhanbo/utils'
+import { isFunction, isString, partition, timestamp } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import { Cookies } from '../cookies'
-import { doesProxyContextMatchUrl, urlParse } from '../utils'
-import { fineMockData } from './findMockData'
+import { createMatcher, doesProxyContextMatchUrl, urlParse } from '../utils'
+import { findMockData } from './findMockData'
 import { matchingWeight } from './matchingWeight'
 import {
   parseRequestBody,
@@ -43,23 +42,30 @@ export function baseMiddleware(
     logger,
     priority = {},
   }: BaseMiddlewareOptions,
-): Middleware {
-  return async function (
-    req: http.IncomingMessage,
-    res: http.ServerResponse,
-    next: (err?: any) => void,
-  ) {
+): (req: http.IncomingMessage, res: http.ServerResponse, next: (err?: any) => void) => void {
+  const [globFilter, contextFilter] = partition(
+    proxies,
+    item => isString(item) && item.includes('*'),
+  ) as [string[], (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]]
+
+  const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter)
+
+  return async function (req, res, next) {
     const startTime = timestamp()
     const { query, pathname } = urlParse(req.url!)
 
-    // 预先过滤不符合路径前缀的请求
-    if (
-      !pathname
-      || proxies.length === 0
-      || !proxies.some(context => doesProxyContextMatchUrl(context, req.url!, req))
-    ) {
+    // 未声明 proxies 时，默认不匹配任何请求
+    if (!pathname || proxies.length === 0) {
       return next()
     }
+
+    // 旧的匹配规则，前缀匹配
+    if (contextFilter.length && !contextFilter.some(context => doesProxyContextMatchUrl(context, req)))
+      return next()
+
+    // 新的匹配规则，glob匹配
+    if (globFilter.length && !isGlobProxiesMatch(pathname))
+      return next()
 
     const mockData = compiler.mockData
     // 对满足匹配规则的配置进行优先级排序
@@ -82,7 +88,7 @@ export function baseMiddleware(
     let _mockUrl: string | undefined
     // 查找匹配的mock，仅找出首个匹配的配置项后立即结束
     for (const mockUrl of mockUrls) {
-      mock = fineMockData(mockData[mockUrl], logger, {
+      mock = findMockData(mockData[mockUrl], logger, {
         pathname,
         method,
         request: {

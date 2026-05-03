@@ -1,4 +1,5 @@
 import type { Server } from 'node:http'
+import type http from 'node:http'
 import type { Http2SecureServer } from 'node:http2'
 import type { WebSocket } from 'ws'
 import type { MockCompiler } from '../compiler'
@@ -9,10 +10,11 @@ import type {
   WebSocketSetupContext,
 } from '../types'
 import type { Logger } from '../utils'
+import { isString, partition } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import { WebSocketServer } from 'ws'
 import { Cookies } from '../cookies'
-import { doesProxyContextMatchUrl, isPathMatch, urlParse } from '../utils'
+import { createMatcher, doesProxyContextMatchUrl, isPathMatch, urlParse } from '../utils'
 import { parseRequestParams } from './request'
 
 type PoolMap = Map<string, WSSMap>
@@ -134,15 +136,28 @@ export function mockWebSocket(
       }
     }
   })
+
+  const [globFilter, contextFilter] = partition(
+    proxies,
+    item => isString(item) && item.includes('*'),
+  ) as [string[], (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]]
+
+  const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter)
+
   httpServer?.on('upgrade', (req, socket, head) => {
     const { pathname, query } = urlParse(req.url!)
-    if (
-      !pathname
-      || proxies.length === 0
-      || !proxies.some(context => doesProxyContextMatchUrl(context, req.url!, req))
-    ) {
+    if (!pathname || proxies.length === 0) {
       return
     }
+    // 旧的匹配规则，前缀匹配
+    if (contextFilter.length && !contextFilter.some(context => doesProxyContextMatchUrl(context, req))) {
+      return
+    }
+    // 新的匹配规则，glob匹配
+    if (globFilter.length && !isGlobProxiesMatch(pathname)) {
+      return
+    }
+
     const mockData = compiler.mockData
     const mockUrl = Object.keys(mockData).find(key => isPathMatch(key, pathname))
     if (!mockUrl)

@@ -1,6 +1,6 @@
 import JSON5 from 'json5'
 
-module.exports = function (content: string): string {
+export default function (content: string): string {
   if (!content)
     return 'export default {}'
 

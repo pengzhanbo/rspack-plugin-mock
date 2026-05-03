@@ -1,4 +1,5 @@
 import type { RspackPluginInstance } from '@rspack/core'
+import type http from 'node:http'
 import type { MockServerPluginOptions, ServerBuildOption } from './types'
 import type { Logger } from './utils'
 import process from 'node:process'
@@ -8,8 +9,8 @@ import { createLogger } from './utils'
 
 export interface ResolvedCompilerOptions {
   alias: Record<string, false | string | (string | false)[]>
-  proxies: (string | ((pathname: string, req: any) => boolean))[]
-  wsProxies: (string | ((pathname: string, req: any) => boolean))[]
+  proxies: (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]
+  wsProxies: (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]
   plugins: RspackPluginInstance[]
   context?: string
 }

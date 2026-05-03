@@ -14,7 +14,7 @@ interface FindMockDataOptions {
 /**
  * 查找匹配的 mock data
  */
-export function fineMockData(
+export function findMockData(
   mockList: MockOptions,
   logger: Logger,
   { pathname, method, request }: FindMockDataOptions,

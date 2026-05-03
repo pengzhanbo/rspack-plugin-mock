@@ -4,7 +4,7 @@ import type { ResolvePluginOptions } from './options'
 import type { MockServerPluginOptions } from './types'
 import path from 'node:path'
 import process from 'node:process'
-import { isString, toArray } from '@pengzhanbo/utils'
+import { isString, toArray, toTruthy } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
 import { buildMockServer } from './build'
 import { createMockCompiler } from './compiler'
@@ -22,6 +22,12 @@ export class MockServerPlugin implements RspackPluginInstance {
     const options = resolvePluginOptions(compiler, this.options)
 
     if (process.env.NODE_ENV !== 'production') {
+      if (compilerOptions.devServer === false) {
+        options.logger.warn(`${PLUGIN_NAME} is disabled, because devServer is disabled`)
+
+        return
+      }
+
       const mockCompiler = createMockCompiler(options)
 
       const mockMiddleware = initMockMiddleware(mockCompiler, options)
@@ -40,7 +46,7 @@ export class MockServerPlugin implements RspackPluginInstance {
           }
           middlewares = mockMiddleware(middlewares, reload) || middlewares
           /**
-           * 在 @rspack/dev-server -> webpack-dev-server 中, setupMiddlewares 优先于 createServer
+           * 在 @rspack/dev-server -> @rspack/dev-server 中, setupMiddlewares 优先于 createServer
            * 执行，需要等待 server 启动后再注入 mock websocket
            */
           waitServerForMockWebSocket(() => devServer.server)
@@ -62,8 +68,9 @@ export class MockServerPlugin implements RspackPluginInstance {
           // 恢复代理请求数据流
           .map((item) => {
             if (typeof item !== 'function' && !item.ws) {
-              const onProxyReq = item.onProxyReq
-              item.onProxyReq = (proxyReq: ClientRequest, req: IncomingMessage, ...args) => {
+              const on = (item.on ??= {})
+              const onProxyReq = on.proxyReq
+              on.proxyReq = (proxyReq: ClientRequest, req: IncomingMessage, ...args) => {
                 onProxyReq?.(proxyReq, req, ...args)
                 rewriteRequest(proxyReq, req)
               }
@@ -92,12 +99,13 @@ export function resolvePluginOptions(compiler: Compiler, options: MockServerPlug
   const definePluginInstance = compilerOptions.plugins?.find(
     plugin => plugin instanceof rspack.DefinePlugin,
   )
-  const proxies = (compilerOptions.devServer?.proxy || []).flatMap((item) => {
-    if (typeof item !== 'function' && item.context && !item.ws) {
-      return item.context
+  const devServer = compilerOptions.devServer ? compilerOptions.devServer : {}
+  const proxies = (devServer.proxy || []).flatMap((item) => {
+    if (typeof item !== 'function' && !item.ws) {
+      return item.pathFilter || item.context
     }
     return []
-  })
+  }).filter(toTruthy)
 
   return resolvePluginOptionsRaw(options, {
     alias,

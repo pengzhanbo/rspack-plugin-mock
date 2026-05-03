@@ -1,8 +1,10 @@
 import type { MockHttpItem, MockOptions, MockWebsocketItem } from '../types'
 import {
+  isArray,
   isEmptyObject,
   isFunction,
   isPlainObject,
+  objectKeys,
   sortBy,
   toArray,
 } from '@pengzhanbo/utils'
@@ -14,7 +16,7 @@ export function processRawData(
   return rawData.filter(item => item[0]).map(([raw, __filepath__]) => {
     let mockConfig
     if (raw.default) {
-      if (Array.isArray(raw.default)) {
+      if (isArray(raw.default)) {
         mockConfig = raw.default.map((item: any) => ({ ...item, __filepath__ }))
       }
       else {
@@ -26,12 +28,13 @@ export function processRawData(
     }
     else {
       mockConfig = []
-      Object.keys(raw || {}).forEach((key) => {
-        if (Array.isArray(raw[key])) {
-          mockConfig.push(...raw[key].map(item => ({ ...item, __filepath__ })))
+      objectKeys(raw || {}).forEach((key) => {
+        const data = raw[key]
+        if (isArray(data)) {
+          mockConfig.push(...data.map(item => ({ ...(item as any), __filepath__ })))
         }
         else {
-          mockConfig.push({ ...raw[key], __filepath__ })
+          mockConfig.push({ ...data, __filepath__ })
         }
       })
     }
@@ -79,7 +82,7 @@ export function processMockData(
       list.push(current)
     })
 
-  Object.keys(mocks).forEach((key) => {
+  objectKeys(mocks).forEach((key) => {
     mocks[key] = sortByValidator(mocks[key])
   })
   return mocks
@@ -106,5 +109,5 @@ export function sortByValidator(mocks: MockOptions): (MockHttpItem | MockWebsock
 function keysCount(obj?: object): number {
   if (!obj)
     return 0
-  return Object.keys(obj).length
+  return objectKeys(obj).length
 }

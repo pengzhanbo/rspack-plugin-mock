@@ -106,7 +106,7 @@ function resolveRspackOptions({
   alias,
   watch = false,
 }: CompilerOptions): RspackOptions {
-  const targets = ['node >= 18.0.0']
+  const targets = ['node >= 20.0.0']
   if (alias && '@swc/helpers' in alias) {
     delete alias['@swc/helpers']
   }
@@ -133,7 +133,6 @@ function resolveRspackOptions({
       module: isEsm,
       path: '/',
     },
-    experiments: { outputModule: isEsm },
     optimization: { minimize: !watch },
     node: { __dirname: false, __filename: false },
     module: {
