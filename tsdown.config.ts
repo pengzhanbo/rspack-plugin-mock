@@ -2,9 +2,8 @@ import type { UserConfig } from 'tsdown'
 import { defineConfig } from 'tsdown'
 
 const config: UserConfig[] = defineConfig([{
-  entry: ['src/json5-loader.cts'],
-  format: 'cjs',
-  minify: true,
+  entry: ['src/json5-loader.ts'],
+  format: 'esm',
   dts: false,
 }, {
   entry: {
@@ -16,8 +15,8 @@ const config: UserConfig[] = defineConfig([{
   format: 'esm',
   shims: true,
   sourcemap: false,
-  minify: true,
   dts: true,
+  fixedExtension: false,
 }])
 
 export default config
