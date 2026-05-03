@@ -9,7 +9,7 @@
     "preview": "rsbuild preview"
   },
   "devDependencies": {
-    "@rsbuild/core": "^1.6.15",
+    "@rsbuild/core": "^2.0.3",
     "@types/mockjs": "^1.0.10",
     "mime-types": "^3.0.2",
     "mockjs": "^1.1.0",
