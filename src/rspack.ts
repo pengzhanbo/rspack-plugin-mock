@@ -4,11 +4,11 @@ import type { ResolvePluginOptions } from './options'
 import type { MockServerPluginOptions } from './types'
 import path from 'node:path'
 import process from 'node:process'
-import { isString, toArray, toTruthy } from '@pengzhanbo/utils'
+import { isFunction, isString, toArray, toTruthy } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
 import { buildMockServer } from './build'
 import { createMockCompiler } from './compiler'
-import { initMockMiddleware, mockWebSocket, rewriteRequest } from './core'
+import { baseMiddleware, mockWebSocket, rewriteRequest } from './core'
 import { resolvePluginOptions as resolvePluginOptionsRaw } from './options'
 import { waitingFor } from './utils'
 
@@ -29,8 +29,6 @@ export class MockServerPlugin implements RspackPluginInstance {
       }
 
       const mockCompiler = createMockCompiler(options)
-
-      const mockMiddleware = initMockMiddleware(mockCompiler, options)
       const setupMiddlewares = compilerOptions.devServer?.setupMiddlewares
       const waitServerForMockWebSocket = waitingFor<Server>((server) => {
         mockWebSocket(mockCompiler, server, options)
@@ -40,13 +38,15 @@ export class MockServerPlugin implements RspackPluginInstance {
         ...compilerOptions.devServer,
         setupMiddlewares: (middlewares, devServer) => {
           middlewares = setupMiddlewares?.(middlewares, devServer) || middlewares
-          const reload = () => {
-            if (devServer.webSocketServer?.clients)
-              devServer.sendMessage(devServer.webSocketServer.clients, 'static-changed')
+          middlewares.unshift(baseMiddleware(mockCompiler, options))
+          if (options.reload) {
+            mockCompiler.on('update', () => {
+              if (devServer.webSocketServer?.clients)
+                devServer.sendMessage(devServer.webSocketServer.clients, 'static-changed')
+            })
           }
-          middlewares = mockMiddleware(middlewares, reload) || middlewares
           /**
-           * 在 @rspack/dev-server -> @rspack/dev-server 中, setupMiddlewares 优先于 createServer
+           * 在 @rspack/dev-server 中, setupMiddlewares 优先于 createServer
            * 执行，需要等待 server 启动后再注入 mock websocket
            */
           waitServerForMockWebSocket(() => devServer.server)
@@ -60,14 +60,14 @@ export class MockServerPlugin implements RspackPluginInstance {
         compilerOptions.devServer.proxy = proxy
           // 排除 proxy 中的 与 wsPrefix 相关的 ws 代理配置，避免 request upgrade 冲突
           .filter((item) => {
-            if (typeof item !== 'function' && item.ws === true && wsPrefix.length) {
-              return !toArray(item.context).filter(isString).some(context => wsPrefix.includes(context))
+            if (!isFunction(item) && item.ws === true && wsPrefix.length) {
+              return !toArray(item.pathFilter || item.context).filter(isString).some(context => wsPrefix.includes(context))
             }
             return true
           })
           // 恢复代理请求数据流
           .map((item) => {
-            if (typeof item !== 'function' && !item.ws) {
+            if (!isFunction(item) && !item.ws) {
               const on = (item.on ??= {})
               const onProxyReq = on.proxyReq
               on.proxyReq = (proxyReq: ClientRequest, req: IncomingMessage, ...args) => {
@@ -99,9 +99,9 @@ export function resolvePluginOptions(compiler: Compiler, options: MockServerPlug
   const definePluginInstance = compilerOptions.plugins?.find(
     plugin => plugin instanceof rspack.DefinePlugin,
   )
-  const devServer = compilerOptions.devServer ? compilerOptions.devServer : {}
+  const devServer = compilerOptions.devServer || {}
   const proxies = (devServer.proxy || []).flatMap((item) => {
-    if (typeof item !== 'function' && !item.ws) {
+    if (!isFunction(item) && !item.ws) {
       return item.pathFilter || item.context
     }
     return []

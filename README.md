@@ -21,7 +21,7 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 
 - ⚡️ Lightweight, Flexible, Fast.
 - 🧲 Not injection-based, non-intrusive to client code.
-- 💡 ESModule/commonjs.
+- 💡 Pure ESModule
 - 🦾 Typescript.
 - 🔥 HMR
 - 🏷 Support `.[cm]?js`/ `.ts` /`.json` / `.json5`.

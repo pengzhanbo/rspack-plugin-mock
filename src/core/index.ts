@@ -1,6 +1,5 @@
 export * from './cors'
 export * from './findMockData'
-export * from './init'
 export * from './mockMiddleware'
 export * from './request'
 export * from './requestRecovery'

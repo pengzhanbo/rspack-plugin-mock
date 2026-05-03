@@ -1,4 +1,4 @@
-import { uniq } from '@pengzhanbo/utils'
+import { objectKeys, uniq } from '@pengzhanbo/utils'
 import { loadPackageJSONSync } from 'local-pkg'
 
 export function getPackageDeps(cwd?: string): Record<string, string> {
@@ -9,5 +9,5 @@ export function getPackageDeps(cwd?: string): Record<string, string> {
 
 export function getPackageDepList(cwd?: string): string[] {
   const deps = getPackageDeps(cwd)
-  return uniq(Object.keys(deps))
+  return uniq(objectKeys(deps))
 }

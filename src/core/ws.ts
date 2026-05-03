@@ -10,7 +10,7 @@ import type {
   WebSocketSetupContext,
 } from '../types'
 import type { Logger } from '../utils'
-import { isString, partition } from '@pengzhanbo/utils'
+import { isString, objectKeys, partition } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import { WebSocketServer } from 'ws'
 import { Cookies } from '../cookies'
@@ -159,7 +159,7 @@ export function mockWebSocket(
     }
 
     const mockData = compiler.mockData
-    const mockUrl = Object.keys(mockData).find(key => isPathMatch(key, pathname))
+    const mockUrl = objectKeys(mockData).find(key => isPathMatch(key, pathname))
     if (!mockUrl)
       return
 

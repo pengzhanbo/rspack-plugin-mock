@@ -20,7 +20,7 @@ export function findMockData(
   { pathname, method, request }: FindMockDataOptions,
 ): MockHttpItem | undefined {
   return mockList.find((mock) => {
-    // !mock : 这部分是为了避免 用户编写 mock 文件时，在 文件内容为空时的情况
+    // mock : 这部分是为了避免 用户编写 mock 文件时，文件内容为空时的情况
     if (!pathname || !mock || !mock.url || mock.ws)
       return false
     const methods: Method[] = mock.method
