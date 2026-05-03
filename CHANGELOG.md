@@ -1,3 +1,18 @@
+# [2.0.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.3.0...v2.0.0) (2026-05-03)
+
+
+### Features
+
+* [rsbuild] support mock service in preview mode ([f7cc61d](https://github.com/pengzhanbo/rspack-plugin-mock/commit/f7cc61d9ffbd46228c7a306e36432f5cbe8e0292))
+* adapt rspack&rsbuild 2.0 ([1344068](https://github.com/pengzhanbo/rspack-plugin-mock/commit/134406865708a361179c72c0c2d5ee969a6b3f44))
+
+
+### Performance Improvements
+
+* update deps to latest ([64068ef](https://github.com/pengzhanbo/rspack-plugin-mock/commit/64068ef9d57848ce725b72fca035170c3fcd391e))
+
+
+
 # [1.3.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.2.0...v1.3.0) (2025-12-25)
 
 
