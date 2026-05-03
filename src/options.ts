@@ -1,9 +1,10 @@
 import type { RspackPluginInstance } from '@rspack/core'
+import type { CorsOptions } from 'cors'
 import type http from 'node:http'
 import type { MockServerPluginOptions, ServerBuildOption } from './types'
 import type { Logger } from './utils'
 import process from 'node:process'
-import { isBoolean, toArray } from '@pengzhanbo/utils'
+import { isBoolean, isPlainObject, toArray } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import { createLogger } from './utils'
 
@@ -13,6 +14,7 @@ export interface ResolvedCompilerOptions {
   wsProxies: (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]
   plugins: RspackPluginInstance[]
   context?: string
+  cors: false | CorsOptions
 }
 
 export type ResolvePluginOptions = Required<Omit<MockServerPluginOptions, 'build'>>
@@ -39,7 +41,7 @@ export function resolvePluginOptions(
     bodyParserOptions = {},
     priority = {},
   }: MockServerPluginOptions,
-  { alias, context, plugins, proxies: rawProxies }: Omit<ResolvedCompilerOptions, 'wsProxies'>,
+  { alias, context, plugins, proxies: rawProxies }: Omit<ResolvedCompilerOptions, 'wsProxies' | 'cors'>,
 ): ResolvePluginOptions {
   const logger = createLogger(
     'rspack:mock',
@@ -52,6 +54,17 @@ export function resolvePluginOptions(
   if (!proxies.length && !wsProxies.length)
     logger.warn(`No proxy was configured, mock server will not work. See ${ansis.cyan('https://vite-plugin-mock-dev-server.netlify.app/guide/usage')}`)
 
+  // enable cors by default
+  const enabled = !!cors
+  let corsOptions: CorsOptions = {}
+
+  if (enabled && isPlainObject(cors)) {
+    corsOptions = {
+      ...corsOptions,
+      ...cors,
+    }
+  }
+
   return {
     prefix,
     wsPrefix,
@@ -60,7 +73,7 @@ export function resolvePluginOptions(
     include,
     exclude,
     reload,
-    cors,
+    cors: enabled ? corsOptions : false,
     cookiesOptions,
     log,
     formidableOptions: {

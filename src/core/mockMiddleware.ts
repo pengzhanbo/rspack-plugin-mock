@@ -1,3 +1,4 @@
+import type { CorsOptions } from 'cors'
 import type * as http from 'node:http'
 import type { MockCompiler } from '../compiler/mockCompiler'
 import type {
@@ -7,10 +8,11 @@ import type {
   MockServerPluginOptions,
 } from '../types'
 import type { Logger } from '../utils'
-import { isFunction, isString, partition, timestamp } from '@pengzhanbo/utils'
+import { attemptAsync, isFunction, isString, partition, timestamp } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import { Cookies } from '../cookies'
 import { createMatcher, doesProxyContextMatchUrl, urlParse } from '../utils'
+import { createCors } from './cors'
 import { findMockData } from './findMockData'
 import { matchingWeight } from './matchingWeight'
 import {
@@ -30,6 +32,7 @@ import {
 export interface BaseMiddlewareOptions extends Pick<MockServerPluginOptions, 'formidableOptions' | 'cookiesOptions' | 'bodyParserOptions' | 'priority'> {
   proxies: (string | ((pathname: string, req: any) => boolean))[]
   logger: Logger
+  cors: false | CorsOptions
 }
 
 export function baseMiddleware(
@@ -41,14 +44,17 @@ export function baseMiddleware(
     cookiesOptions,
     logger,
     priority = {},
+    cors: corsOptions,
   }: BaseMiddlewareOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (err?: any) => void) => void {
+  const cors = createCors(corsOptions)
+
   const [globFilter, contextFilter] = partition(
     proxies,
     item => isString(item) && item.includes('*'),
   ) as [string[], (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]]
 
-  const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter)
+  const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter, [], false)
 
   return async function (req, res, next) {
     const startTime = timestamp()
@@ -118,6 +124,15 @@ export function baseMiddleware(
       )
 
       return next()
+    }
+
+    // 处理 CORS - 仅对匹配到 mock 数据的请求应用
+    if (cors) {
+      const [error] = await attemptAsync(cors, req, res)
+      if (error) {
+        logger.error(`CORS error: ${error}`)
+        return next(error)
+      }
     }
 
     const request = req as MockRequest

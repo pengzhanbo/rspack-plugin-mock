@@ -1,4 +1,4 @@
-export * from './corsMiddleware'
+export * from './cors'
 export * from './findMockData'
 export * from './init'
 export * from './mockMiddleware'

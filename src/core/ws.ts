@@ -40,7 +40,7 @@ export interface MockSocketOptions {
 
 export function mockWebSocket(
   compiler: MockCompiler,
-  httpServer: Server | Http2SecureServer,
+  httpServer: Server | Http2SecureServer | null,
   {
     wsProxies: proxies,
     cookiesOptions,
@@ -142,7 +142,7 @@ export function mockWebSocket(
     item => isString(item) && item.includes('*'),
   ) as [string[], (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]]
 
-  const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter)
+  const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter, [], false)
 
   httpServer?.on('upgrade', (req, socket, head) => {
     const { pathname, query } = urlParse(req.url!)
