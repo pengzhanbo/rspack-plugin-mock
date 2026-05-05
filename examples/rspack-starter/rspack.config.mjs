@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url'
 import { rspack } from '@rspack/core'
 import { MockServerPlugin } from 'rspack-plugin-mock'
 
-// const targets = ['chrome >= 87', 'edge >= 88', 'firefox >= 78', 'safari >= 14']
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /** @type {import('@rspack/cli').Configuration} */
@@ -23,7 +22,7 @@ export default {
     proxy: [
       {
         context: '/api/',
-        target: 'http://localhost:3000',
+        target: 'https://localhost:3000',
       },
     ],
   },
@@ -40,7 +39,6 @@ export default {
                   syntax: 'ecmascript',
                 },
               },
-              // env: { targets },
             },
           },
         ],
@@ -56,7 +54,6 @@ export default {
                   syntax: 'typescript',
                 },
               },
-              // env: { targets },
             },
           },
         ],
