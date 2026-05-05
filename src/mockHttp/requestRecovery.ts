@@ -13,10 +13,10 @@ export const requestCollectCache: WeakMap<http.IncomingMessage, Buffer> = new We
 // 备份请求数据
 export function collectRequest(req: http.IncomingMessage): void {
   const chunks: Buffer[] = []
-  req.addListener('data', (chunk) => {
+  req.on('data', (chunk) => {
     chunks.push(Buffer.from(chunk))
   })
-  req.addListener('end', () => {
+  req.on('end', () => {
     if (chunks.length)
       requestCollectCache.set(req, Buffer.concat(chunks))
   })

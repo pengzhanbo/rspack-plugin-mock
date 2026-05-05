@@ -1,0 +1,252 @@
+import type { CorsOptions } from 'cors'
+import type * as http from 'node:http'
+import type { MockCompiler } from '../compiler/mockCompiler'
+import type { Logger, ResolvePluginOptions } from '../core'
+import type {
+  ExtraRequest,
+  MockHttpItem,
+  MockRequest,
+  MockResponse,
+  NextHandleFunction,
+  PathFilter,
+} from '../types'
+import {
+  attemptAsync,
+  isFunction,
+  isString,
+  partition,
+  timestamp,
+  toArray,
+} from '@pengzhanbo/utils'
+import ansis from 'ansis'
+import { Cookies } from '../cookies'
+import { recordRequestWithRawReq, replayRecordedRequest } from '../recorder'
+import { createMatcher, doesProxyContextMatchUrl, urlParse } from '../utils'
+import { createCors } from './cors'
+import { findMockData } from './matcher'
+import { matchingWeight } from './matchingWeight'
+import { parseRequestBody, parseRequestParams, requestLog } from './request'
+import { collectRequest } from './requestRecovery'
+import {
+  provideResponseCookies,
+  provideResponseHeaders,
+  provideResponseStatus,
+  responseRealDelay,
+  sendResponseData,
+} from './response'
+
+export interface CreateMockMiddlewareOptions extends Pick<ResolvePluginOptions, 'formidableOptions' | 'cookiesOptions' | 'bodyParserOptions' | 'priority' | 'record' | 'replay' | 'activeScene'> {
+  proxies: PathFilter[]
+  logger: Logger
+  cors: false | CorsOptions
+}
+
+/**
+ * Create mock middleware
+ *
+ * 创建 Mock 中间件
+ *
+ * @param compiler - Compiler instance / 编译器实例
+ * @param options - Middleware options / 中间件配置项
+ * @param options.formidableOptions - Formidable options / Formidable 配置项
+ * @param options.bodyParserOptions - Body parser options / 请求体解析配置项
+ * @param options.proxies - Proxy paths / 代理路径
+ * @param options.cookiesOptions - Cookies options / Cookies 配置项
+ * @param options.logger - Logger instance / 日志实例
+ * @param options.priority - Path matching priority / 路径匹配优先级
+ * @param options.cors - CORS options / CORS 配置项
+ * @param options.record - Record options / 录制配置项
+ * @param options.replay - Replay options / 回放配置项
+ * @param options.activeScene - Active scene / 活动场景
+ *
+ * @returns Connect middleware function / Connect 中间件函数
+ */
+export function createMockMiddleware(
+  compiler: MockCompiler,
+  {
+    formidableOptions = {},
+    bodyParserOptions = {},
+    proxies,
+    cookiesOptions,
+    logger,
+    priority = {},
+    cors: corsOptions,
+    record,
+    replay,
+    activeScene,
+  }: CreateMockMiddlewareOptions,
+): NextHandleFunction {
+  const cors = createCors(corsOptions)
+
+  const [globFilter, contextFilter] = partition(
+    proxies,
+    item => isString(item) && item.includes('*'),
+  ) as [string[], (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]]
+
+  const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter, [], false)
+
+  return async function (req, res, next) {
+    const startTime = timestamp()
+    const { query, pathname } = urlParse(req.url!)
+
+    // 未声明 proxies 时，默认不匹配任何请求
+    if (!pathname || proxies.length === 0) {
+      return next()
+    }
+
+    // 旧的匹配规则，前缀匹配
+    if (contextFilter.length && !contextFilter.some(context => doesProxyContextMatchUrl(context, req)))
+      return next()
+
+    // 新的匹配规则，glob匹配
+    if (globFilter.length && !isGlobProxiesMatch(pathname))
+      return next()
+
+    const mockData = compiler.mockData
+    // 对满足匹配规则的配置进行优先级排序
+    const mockUrls = matchingWeight(Object.keys(mockData), pathname, priority)
+
+    // 如果没有匹配到 mock 数据，且录制功能未启用，则直接跳过
+    // 由于录制功能还需要额外记录请求，所以不能直接在这里跳过
+    if (mockUrls.length === 0 && !record.enabled) {
+      return next()
+    }
+
+    // 记录请求流中被消费的数据，形成备份，当当前请求无法继续时，可以从备份中恢复请求流
+    collectRequest(req)
+
+    const cookies = new Cookies(req, res, cookiesOptions)
+
+    let mock: MockHttpItem | undefined
+    let _mockUrl: string | undefined
+
+    const method = req.method!.toUpperCase()
+    const extraReq: Omit<ExtraRequest, 'params'> = {
+      query,
+      refererQuery: urlParse(req.headers.referer || '').query,
+      body: await parseRequestBody(req, logger, formidableOptions, bodyParserOptions),
+      headers: req.headers,
+      getCookie: cookies.get.bind(cookies),
+    }
+
+    // Resolve effective active scenario: X-Mock-Scene header overrides config
+    // X-Mock-Scene 头部覆盖配置
+    const headerScene = req.headers['x-mock-scene']
+    const effectiveScene: string[] = headerScene
+      ? toArray(headerScene).map(item => item.split(',').map(s => s.trim())).flat().filter(Boolean)
+      : activeScene
+
+    // 查找匹配的mock，仅找出首个匹配的配置项后立即结束
+    for (const mockUrl of mockUrls) {
+      mock = findMockData(mockData[mockUrl], logger, { pathname, method, request: extraReq, activeScene: effectiveScene })
+      if (mock) {
+        _mockUrl = mockUrl
+        break
+      }
+    }
+
+    // 如果没有匹配到 mock 数据，且回放功能已启用，则尝试从录制记录中回放
+    if (replay && !mock) {
+      mock = await replayRecordedRequest(req, pathname, extraReq.body, record)
+    }
+
+    if (!mock) {
+      // 请求体录制时，需要记录请求体，以便后续回放时使用
+      record.enabled && recordRequestWithRawReq(req, pathname, extraReq.body)
+      const matched = mockUrls
+        .map(m => m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m))
+        .join(', ')
+      matched.length && logger.warn(`${ansis.green(pathname)} matches ${matched}, but mock data is not found.`)
+
+      return next()
+    }
+
+    // 处理 CORS - 仅对匹配到 mock 数据的请求应用
+    if (cors) {
+      const [error] = await attemptAsync(cors, req, res)
+      if (error) {
+        logger.error(`CORS error: ${error}`)
+        return next(error)
+      }
+    }
+
+    const request = req as MockRequest
+    const response = res as MockResponse
+
+    // provide request 往请求实例中注入额外的请求信息
+    Object.assign(request, extraReq)
+    request.params = parseRequestParams(mock.url, pathname)
+
+    // provide response
+    response.setCookie = cookies.set.bind(cookies)
+
+    const {
+      delay,
+      type = 'json',
+      response: responseFn,
+      log: logLevel,
+      error: errorConfig,
+      __filepath__: filepath,
+    } = mock as MockHttpItem & { __filepath__: string }
+    let { body, status = 200, statusText } = mock
+
+    const shouldSimulateError = errorConfig && (errorConfig.probability ?? 0.5) > Math.random()
+
+    // error simulation
+    if (shouldSimulateError) {
+      status = errorConfig.status ?? 500
+      statusText = errorConfig.statusText
+      body = errorConfig.body
+    }
+
+    // provide headers
+    provideResponseStatus(response, status, statusText)
+    await provideResponseHeaders(request, response, mock, logger)
+    await provideResponseCookies(request, response, mock, logger)
+
+    logger.info(requestLog(request, filepath, shouldSimulateError), logLevel)
+    logger.debug(
+      `${ansis.magenta('DEBUG')} ${ansis.underline(pathname)} matches: [ ${mockUrls
+        .map(m => m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m))
+        .join(', ')} ]\n`,
+    )
+
+    if (body) {
+      const [error] = await attemptAsync(async () => {
+        const content = isFunction(body) ? await body(request) : body
+        await responseRealDelay(startTime, delay)
+        sendResponseData(response, content, type)
+      })
+
+      if (error) {
+        logger.error(
+          `${ansis.red(`mock error at ${pathname}`)}\n  ${error}\n  at body (${ansis.underline.gray(filepath)})`,
+          logLevel,
+        )
+        provideResponseStatus(response, 500)
+        res.end('')
+      }
+      return
+    }
+
+    if (responseFn) {
+      const [error] = await attemptAsync(async () => {
+        await responseRealDelay(startTime, delay)
+        await responseFn(request, response, next)
+      })
+      if (error) {
+        logger.error(
+          `${ansis.red(
+            `mock error at ${pathname}`,
+          )}\n  ${error}\n  at response (${ansis.underline.gray(filepath)})`,
+          logLevel,
+        )
+        provideResponseStatus(response, 500)
+        res.end('')
+      }
+      return
+    }
+
+    res.end('')
+  }
+}

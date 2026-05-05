@@ -9,7 +9,7 @@ const config: UserConfig[] = defineConfig([{
   entry: {
     index: 'src/index.ts',
     rsbuild: 'src/rsbuild.ts',
-    helper: 'src/helper/index.ts',
+    helper: 'src/helpers/index.ts',
     server: 'src/server.ts',
   },
   format: 'esm',

@@ -3,19 +3,20 @@ import type http from 'node:http'
 import type { Http2SecureServer } from 'node:http2'
 import type { WebSocket } from 'ws'
 import type { MockCompiler } from '../compiler'
+import type { Logger } from '../core'
 import type {
   MockRequest,
   MockServerPluginOptions,
   MockWebsocketItem,
+  PathFilter,
   WebSocketSetupContext,
 } from '../types'
-import type { Logger } from '../utils'
 import { isString, objectKeys, partition } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import { WebSocketServer } from 'ws'
 import { Cookies } from '../cookies'
+import { parseRequestParams } from '../mockHttp'
 import { createMatcher, doesProxyContextMatchUrl, isPathMatch, urlParse } from '../utils'
-import { parseRequestParams } from './request'
 
 type PoolMap = Map<string, WSSMap>
 type WSSMap = Map<string, WebSocketServer>
@@ -33,7 +34,7 @@ interface WSSContext {
 }
 
 export interface MockSocketOptions {
-  wsProxies: (string | ((pathname: string, req: any) => boolean))[]
+  wsProxies: PathFilter[]
   cookiesOptions: MockServerPluginOptions['cookiesOptions']
   logger: Logger
 }

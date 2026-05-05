@@ -1,4 +1,4 @@
-import type { ResolvePluginOptions } from '../options'
+import type { ResolvePluginOptions } from '../core/options'
 import type { ServerBuildOption } from '../types'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
@@ -16,6 +16,7 @@ export async function buildMockServer(
   options: ResolvePluginOptions,
   outputDir: string,
 ): Promise<void> {
+  const buildOptions = options.build as Required<ServerBuildOption>
   const entryFile = path.resolve(process.cwd(), 'node_modules/.cache/mock-server/mock-server.ts')
   const { pattern, ignore } = createMatcher(options.include, options.exclude)
   const mockFileList = await glob(pattern, { ignore, cwd: path.join(options.cwd, options.dir) })
@@ -34,6 +35,21 @@ export async function buildMockServer(
     { filename: 'index.js', source: generatorServerEntryCode(options) },
     { filename: 'package.json', source: generatePackageJson(options, externals) },
   ]
+
+  // 构建录制文件，复制到输出目录
+  if (options.record.enabled && buildOptions.includeRecord) {
+    const files = await glob(path.join(options.record.dir, '**/*.json'), {
+      cwd: options.cwd,
+      dot: true,
+    })
+    for (const file of files) {
+      outputList.push({
+        filename: path.join(outputDir, file),
+        source: await fsp.readFile(path.join(options.cwd, file), 'utf-8'),
+      })
+    }
+  }
+
   const dist = path.resolve(outputDir, (options.build as ServerBuildOption).dist!)
   options.logger.info(
     `${ansis.green('✓')} generate mock server in ${ansis.cyan(path.relative(process.cwd(), dist))}`,

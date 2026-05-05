@@ -1,9 +1,10 @@
 import type http from 'node:http'
+import type { PathFilter } from '../types'
 
 const PATTERN_CACHE = new Map<string, RegExp>()
 
 export function doesProxyContextMatchUrl(
-  context: (string | ((pathname: string, req: http.IncomingMessage) => boolean)),
+  context: PathFilter,
   req: http.IncomingMessage,
 ): boolean {
   const url = req.url!

@@ -1,4 +1,4 @@
-import type { ResolvePluginOptions } from '../options'
+import type { ResolvePluginOptions } from '../core/options'
 import type { ServerBuildOption } from '../types'
 import { toArray } from '@pengzhanbo/utils'
 

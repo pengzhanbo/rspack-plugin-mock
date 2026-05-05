@@ -1,4 +1,5 @@
 import type http from 'node:http'
+import type { HandleFunction } from '../types'
 import cors from 'cors'
 
 /**
@@ -9,7 +10,9 @@ import cors from 'cors'
  * @param corsOptions - CORS options / CORS 配置项
  * @returns CORS middleware function or undefined / CORS 中间件函数或未定义
  */
-export function createCors(corsOptions?: cors.CorsOptions | false): ((req: http.IncomingMessage, res: http.ServerResponse) => Promise<void>) | undefined {
+export function createCors(
+  corsOptions?: cors.CorsOptions | false,
+): HandleFunction | undefined {
   const corsMiddleware = corsOptions ? cors(corsOptions) : undefined
   return corsMiddleware
     ? (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> =>

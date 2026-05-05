@@ -1,4 +1,4 @@
-import type { ResolvePluginOptions } from '../options'
+import type { ResolvePluginOptions } from '../core/options'
 import { name as __PACKAGE_NAME__, version as __PACKAGE_VERSION__ } from '../../package.json'
 import { getPackageDeps } from '../utils'
 

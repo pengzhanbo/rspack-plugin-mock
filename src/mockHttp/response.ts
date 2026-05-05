@@ -1,20 +1,32 @@
+import type { Logger } from '../core'
 import type { MockHttpItem, MockRequest, MockResponse, ResponseBody } from '../types'
 import { Buffer } from 'node:buffer'
-import { isArray, isFunction, random, sleep, timestamp } from '@pengzhanbo/utils'
+import { attemptAsync, isArray, isFunction, objectKeys, random, sleep, timestamp } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import HTTP_STATUS from 'http-status'
 import * as mime from 'mime-types'
-import { isReadableStream, type Logger } from '../utils'
+import { isReadableStream } from '../utils'
 
 /**
+ * Get HTTP status text by status code
+ *
  * 根据状态码获取状态文本
+ *
+ * @param status - HTTP status code / HTTP 状态码
+ * @returns HTTP status text / HTTP 状态文本
  */
 export function getHTTPStatusText(status: number): string {
   return HTTP_STATUS[status as keyof typeof HTTP_STATUS] as string || 'Unknown'
 }
 
 /**
+ * Set response status
+ *
  * 设置响应状态
+ *
+ * @param response - Response object / 响应对象
+ * @param status - HTTP status code / HTTP 状态码
+ * @param statusText - HTTP status text / HTTP 状态文本
  */
 export function provideResponseStatus(
   response: MockResponse,
@@ -26,7 +38,14 @@ export function provideResponseStatus(
 }
 
 /**
+ * Set response headers
+ *
  * 设置响应头
+ *
+ * @param req - Request object / 请求对象
+ * @param res - Response object / 响应对象
+ * @param mock - Mock HTTP item / Mock HTTP 配置项
+ * @param logger - Logger instance / 日志实例
  */
 export async function provideResponseHeaders(
   req: MockRequest,
@@ -51,24 +70,28 @@ export async function provideResponseHeaders(
   if (!headers)
     return
 
-  try {
-    const raw = isFunction(headers) ? await headers(req) : headers
-    Object.keys(raw).forEach((key) => {
-      res.setHeader(key, raw[key]!)
-    })
-  }
-  catch (e) {
+  const [error, data] = await attemptAsync(async () =>
+    isFunction(headers) ? await headers(req) : headers,
+  )
+  if (error) {
     logger.error(
-      `${ansis.red(
-        `mock error at ${req.url!.split('?')[0]}`,
-      )}\n${e}\n  at headers (${ansis.underline(filepath)})`,
+      `${ansis.red(`mock error at ${req.url!.split('?')[0]}`)}\n${error}\n  at headers (${ansis.underline(filepath)})`,
       mock.log,
     )
+    return
   }
+  objectKeys(data).forEach(key => res.setHeader(key, data[key]!))
 }
 
 /**
+ * Set response cookies
+ *
  * 设置响应cookie
+ *
+ * @param req - Request object / 请求对象
+ * @param res - Response object / 响应对象
+ * @param mock - Mock HTTP item / Mock HTTP 配置项
+ * @param logger - Logger instance / 日志实例
  */
 export async function provideResponseCookies(
   req: MockRequest,
@@ -77,34 +100,35 @@ export async function provideResponseCookies(
   logger: Logger,
 ): Promise<void> {
   const { cookies } = mock
-  const filepath = (mock as any).__filepath__ as string
   if (!cookies)
     return
-  try {
-    const raw = isFunction(cookies) ? await cookies(req) : cookies
-    Object.keys(raw).forEach((key) => {
-      const cookie = raw[key]
-      if (isArray(cookie)) {
-        const [value, options] = cookie
-        res.setCookie(key, value, options)
-      }
-      else {
-        res.setCookie(key, cookie)
-      }
-    })
-  }
-  catch (e) {
+
+  const [error, data] = await attemptAsync(async () =>
+    isFunction(cookies) ? await cookies(req) : cookies,
+  )
+  if (error) {
+    const filepath = (mock as any).__filepath__ as string
     logger.error(
-      `${ansis.red(
-        `mock error at ${req.url!.split('?')[0]}`,
-      )}\n${e}\n  at cookies (${ansis.underline(filepath)})`,
+      `${ansis.red(`mock error at ${req.url!.split('?')[0]}`)}\n${error}\n  at cookies (${ansis.underline(filepath)})`,
       mock.log,
     )
+    return
   }
+  objectKeys(data).forEach((key) => {
+    const cookie = data[key]
+    const [value, options] = isArray(cookie) ? cookie : [cookie]
+    res.setCookie(key, value, options)
+  })
 }
 
 /**
+ * Send response data
+ *
  * 设置响应数据
+ *
+ * @param res - Response object / 响应对象
+ * @param raw - Response body data / 响应体数据
+ * @param type - Response data type / 响应数据类型
  */
 export function sendResponseData(res: MockResponse, raw: ResponseBody, type: string): void {
   if (isReadableStream(raw)) {
@@ -120,7 +144,12 @@ export function sendResponseData(res: MockResponse, raw: ResponseBody, type: str
 }
 
 /**
+ * Apply real response delay
+ *
  * 实际响应延迟
+ *
+ * @param startTime - Request start time / 请求开始时间
+ * @param delay - Delay configuration / 延迟配置
  */
 export async function responseRealDelay(startTime: number, delay?: MockHttpItem['delay']): Promise<void> {
   if (

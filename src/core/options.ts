@@ -1,20 +1,20 @@
+import type { Arrayable } from '@pengzhanbo/utils'
 import type { RspackPluginInstance } from '@rspack/core'
 import type { CorsOptions } from 'cors'
-import type http from 'node:http'
-import type { MockServerPluginOptions, ServerBuildOption } from './types'
-import type { Logger } from './utils'
+import type { MockServerPluginOptions, PathFilter, RecordOptions, ResolvedRecordOptions, ServerBuildOption } from '../types'
+import type { Logger } from './logger'
+import path from 'node:path'
 import process from 'node:process'
 import { isBoolean, isPlainObject, toArray } from '@pengzhanbo/utils'
 import ansis from 'ansis'
-import { createLogger } from './utils'
+import { createLogger } from '.'
 
 export interface ResolvedCompilerOptions {
-  alias: Record<string, false | string | (string | false)[]>
-  proxies: (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]
-  wsProxies: (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]
+  alias: Record<string, Arrayable<false | string>>
+  proxies: PathFilter[]
+  wsProxies: PathFilter[]
   plugins: RspackPluginInstance[]
   context?: string
-  cors: false | CorsOptions
 }
 
 export type ResolvePluginOptions = Required<Omit<MockServerPluginOptions, 'build'>>
@@ -22,6 +22,9 @@ export type ResolvePluginOptions = Required<Omit<MockServerPluginOptions, 'build
   & {
     logger: Logger
     build: false | ServerBuildOption
+    cors: false | CorsOptions
+    record: ResolvedRecordOptions
+    activeScene: string[]
   }
 
 export function resolvePluginOptions(
@@ -40,6 +43,9 @@ export function resolvePluginOptions(
     cookiesOptions = {},
     bodyParserOptions = {},
     priority = {},
+    activeScene = [],
+    record = false,
+    replay,
   }: MockServerPluginOptions,
   { alias, context, plugins, proxies: rawProxies }: Omit<ResolvedCompilerOptions, 'wsProxies' | 'cors'>,
 ): ResolvePluginOptions {
@@ -64,11 +70,14 @@ export function resolvePluginOptions(
       ...cors,
     }
   }
+  cwd = cwd || context || process.cwd()
+  const resolvedRecord = resolveRecordOptions(cwd, dir, record)
 
   return {
+    enabled: true,
     prefix,
     wsPrefix,
-    cwd: cwd || context || process.cwd(),
+    cwd,
     dir,
     include,
     exclude,
@@ -95,5 +104,36 @@ export function resolvePluginOptions(
     proxies,
     wsProxies,
     logger,
+    activeScene: toArray(activeScene),
+    record: resolvedRecord,
+    replay: replay ?? resolvedRecord.enabled ?? false,
+  }
+}
+
+/**
+ * Resolve record options
+ *
+ * 解析录制配置
+ *
+ * @param cwd - Current working directory / 当前工作目录
+ * @param dir - Mock context directory / 模拟上下文目录
+ * @param record - Record options / 录制配置
+ * @returns Resolved record options / 解析后的录制配置
+ */
+export function resolveRecordOptions(cwd: string, dir: string, record?: boolean | RecordOptions): ResolvedRecordOptions {
+  // Parse record configuration
+  const recordOptions = typeof record === 'boolean'
+    ? { enabled: record }
+    : record
+  const expires = recordOptions?.expires ?? 0
+  return {
+    enabled: recordOptions?.enabled ?? false,
+    cwd,
+    dir: path.join(dir, recordOptions?.dir || '.recordings'),
+    overwrite: recordOptions?.overwrite ?? true,
+    status: toArray(recordOptions?.status).map(Number),
+    expires: expires === 0 ? Number.MAX_SAFE_INTEGER : expires * 1000,
+    gitignore: recordOptions?.gitignore ?? true,
+    filter: recordOptions?.filter || (() => true),
   }
 }

@@ -1,7 +1,7 @@
 import type { Compiler } from '@rspack/core'
 import type { FSWatcher } from 'chokidar'
 import type { Matcher } from 'picomatch'
-import type { ResolvePluginOptions } from '../options'
+import type { ResolvePluginOptions } from '../core/options'
 import type { MockOptions } from '../types'
 import type { CompilerOptions } from './createRspackCompiler'
 import EventEmitter from 'node:events'
