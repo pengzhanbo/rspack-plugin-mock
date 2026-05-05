@@ -1,3 +1,12 @@
+# [2.1.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v2.0.0...v2.1.0) (2026-05-05)
+
+
+### Features
+
+* align all features of `vite-plugin-mock-dev-server` ([cf1fdec](https://github.com/pengzhanbo/rspack-plugin-mock/commit/cf1fdec4e07b7af8e994cae971094fd90639b0de))
+
+
+
 # [2.0.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v1.3.0...v2.0.0) (2026-05-03)
 
 
