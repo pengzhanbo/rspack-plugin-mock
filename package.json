@@ -69,13 +69,17 @@
   },
   "peerDependencies": {
     "@rsbuild/core": ">=2.0.0",
-    "@rspack/core": ">=2.0.0"
+    "@rspack/core": ">=2.0.0",
+    "zstd-codec": ">=0.1.5"
   },
   "peerDependenciesMeta": {
     "@rsbuild/core": {
       "optional": true
     },
     "@rspack/core": {
+      "optional": true
+    },
+    "zstd-codec": {
       "optional": true
     }
   },
@@ -117,7 +121,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "tsdown": "^0.21.10",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "zstd-codec": "^0.1.5"
   },
   "lint-staged": {
     "*": "eslint --fix"
