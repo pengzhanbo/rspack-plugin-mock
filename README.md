@@ -41,6 +41,7 @@ Implement a mock-dev-server in `rspack` and `rsbuild` that is fully consistent w
 - 📤 Support `multipart` content-type, mock upload file.
 - 📥 Support mock download file.
 - ⚜️ Support `WebSocket Mock` and `Server-Sent Events Mock`
+- 📝 Support **recording** and **replay requests**
 - 🗂 Support building small independent deployable mock services.
 
 ## Install
@@ -211,7 +212,15 @@ export default defineMock({
 
 ## Plugin Options
 
-### options.prefix
+### enabled
+
+- **Type:** `boolean`
+- **Default:** `true`
+- **Details:**
+
+  Whether to enable mock server, if set to `false`, the plugin will not work.
+
+### prefix
 
 - **Type:** `string | string[]`
 - **Details:**
@@ -220,7 +229,7 @@ export default defineMock({
   any request path starting with prefix will be intercepted and proxied.
   If the prefix starts with `^`, it will be recognized as a `RegExp`.
 
-### options.wsPrefix
+### wsPrefix
 
 - **Type:** `string | string[]`
 - **Details:**
@@ -232,7 +241,7 @@ export default defineMock({
 
   Please avoid having the configurations in `wsPrefix` appear in `devServer.proxy` / `server.proxy`, as this may lead to conflicts in the rules.
 
-### options.cwd
+### cwd
 
 - **Type:** `string`
 - **Default:** `process.cwd()`
@@ -240,31 +249,31 @@ export default defineMock({
 
   Configure the matching context for `include` and `exclude`.
 
-### options.dir
+### dir
 
 - **Type:** `string`
-- **Default:** `mock` (relative to [`options.cwd`](#optionscwd))
+- **Default:** `mock` (relative to [`cwd`](#cwd))
 - **Details:**
 
   Configure the directory where mock files are located
 
-### options.include
+### include
 
 - **Type:** `string | string[]`
-- **Default:** `['**/*.mock.{js,ts,cjs,mjs,json,json5}']` (relative to [`options.dir`](#optionsdir))
+- **Default:** `['**/*.mock.{js,ts,cjs,mjs,json,json5}']` (relative to [`dir`](#dir))
 - **Details:**
 
   glob string matching mock includes files. see [picomatch](https://github.com/micromatch/picomatch#globbing-features)
 
-### options.exclude
+### exclude
 
 - **Type:** `string | string[]`
-- **Default:** `[]`  (relative to [`options.dir`](#optionsdir))
+- **Default:** `[]`  (relative to [`dir`](#dir))
 - **Details:**
 
   glob string matching mock excluded files. see [picomatch](https://github.com/micromatch/picomatch#globbing-features)
 
-### options.log
+### log
 
 - **Type:** `boolean | 'info' | 'warn' | 'error' | 'silent' | 'debug'`
 - **Default:** `info`
@@ -272,7 +281,7 @@ export default defineMock({
 
   Enable log and configure log level
 
-### options.reload
+### reload
 
 - **Type:** `boolean`
 - **Default:** `false`
@@ -281,7 +290,17 @@ export default defineMock({
   If you want to refresh the page every time you modify a mock file,
   you can open this option.
 
-### options.cors
+### activeScene
+
+- **Type:** `string | string[]`
+- **Default:** `''`
+- **Details:**
+
+  Active scenario(s) for filtering mocks.
+
+  Only mocks whose [`scene`](#optionsscene) intersects with this value (or have no `scene` configured) will be considered for matching. Can be overridden per-request via the `X-Mock-Scene` header.
+
+### cors
 
 - **Type:** `boolean | CorsOptions`
 - **Default:** `true`
@@ -289,7 +308,7 @@ export default defineMock({
 
   Configure to [cors](https://github.com/expressjs/cors#configuration-options)
 
-### options.formidableOptions
+### formidableOptions
 
 - **Type:** `FormidableOptions`
 - **Default:** `{ multiples: true }`
@@ -297,21 +316,21 @@ export default defineMock({
 
   Configure to [formidable](https://github.com/node-formidable/formidable#options)
 
-### options.cookiesOptions
+### cookiesOptions
 
 - **Type:** `CookiesOptions`
 - **Details:**
 
   Configure to [cookies](https://github.com/pillarjs/cookies#new-cookiesrequest-response--options)
 
-### options.bodyParserOptions
+### bodyParserOptions
 
 - **Type:** `BodyParserOptions`
 - **Details:**
 
   Configure to [co-body](https://github.com/cojs/co-body#options)
 
-## options.build
+## build
 
 - **Type:** `boolean | ServerBuildOption`
 
@@ -341,7 +360,142 @@ export default defineMock({
 
   When you need to build a small mock service, you can configure this option.
 
+### record
+
+- **Type:** `false | RecordOptions`
+- **Default:** `false`
+- **Details：**
+
+  Whether to enable the request recording feature. Once enabled, the plugin will record all request data for subsequent request playback.
+
+  Based on `proxy`, the plugin records request data proxied by `http-proxy`.
+  After receiving a response, the plugin will record the request data and response data to the specified directory.
+
+  ```ts
+  interface RecordOptions {
+    /**
+     * Whether to enable the record feature
+     * - true: Enable, automatically record proxy responses
+     * - false: Disable (default)
+     * @default false
+     */
+    enabled?: boolean
+    /**
+     * Filter requests to record
+     * - Function: Custom filter function, return true to record
+     * - Object: Include/exclude patterns with glob or path-to-regexp mode
+     * @example
+     * ```ts
+     * // Record all requests
+     * filter: (req) => true
+     * // Record requests using glob pattern
+     * filter: { mode: 'glob', include: '/api/**' }
+     * // Record requests using path-to-regexp pattern
+     * filter: { mode: 'path-to-regexp', include: '/api/:id' }
+     * ```
+     */
+    filter?: ((req: RecordedReq) => boolean) | {
+      /**
+       * Include the request links that need to be recorded
+       *
+       * String: Glob pattern or path-to-regexp pattern
+       * (Use the mode option to set the mode, default is glob)
+       */
+      include?: string | string[]
+      /**
+       * Exclude request links that do not need to be recorded
+       *
+       * String: Glob pattern or path-to-regexp pattern
+       * (Use the mode option to set the mode, default is glob)
+       */
+      exclude?: string | string[]
+      /**
+       * Matching mode for include/exclude patterns
+       * - 'glob': Glob pattern matching (default)
+       * - 'path-to-regexp': Path-to-regexp pattern matching
+       */
+      mode: 'glob' | 'path-to-regexp'
+    }
+
+    /**
+     * Directory to store recorded data
+     * Relative to project root
+     * @default 'mock/.recordings'
+     */
+    dir?: string
+    /**
+     * Whether to overwrite existing recorded data
+     * - true: Overwrite old data for the same request (default)
+     * - false: Keep old data, do not record new data
+     * @default true
+     */
+    overwrite?: boolean
+    /**
+     * Expiration time for recorded data in seconds
+     * - 0: Never expire (default)
+     * - Positive number: Expire after specified seconds
+     * @default 0
+     */
+    expires?: number
+    /**
+     * Status codes to record
+     * - Empty array: Record all status codes (default)
+     * - Specify one or more status codes to filter
+     * @default []
+     */
+    status?: number | number[]
+    /**
+     * Should a .gitignore be added to the recording directory
+     * - true: Add (default)
+     * - false: Do not add
+     * @default true
+     */
+    gitignore?: boolean
+  }
+  ```
+
+### replay
+
+- **Type:** `boolean`
+- **Default:** `false`
+- **Details：**
+
+  Whether to enable the request playback feature. Once enabled, the plugin will simulate responses based on the recorded request data.
+
+### priority
+
+- **Type:** `MockMatchPriority`
+- **Details:**
+
+  Custom path matching rule priority。[read more](#custom-path-matching-priority)
+
 ## Mock Options
+
+**http mock**
+
+```ts
+import { defineMock } from 'rspack-plugin-mock/helper'
+export default defineMock({
+  url: '/api/test',
+  body: { message: 'hello world' }
+})
+```
+
+**websocket mock**
+
+```ts
+import { defineMock } from 'rspack-plugin-mock/helper'
+
+export default defineMock({
+  url: '/socket.io',
+  ws: true,
+  setup(wss) {
+    wss.on('connection', (ws, req) => {
+      console.log('connected')
+    })
+  }
+})
+```
 
 ### options.url
 
@@ -358,6 +512,16 @@ export default defineMock({
 
   Whether to enable mock for this interface. In most scenarios, we only need to mock some interfaces instead of all requests that have been configured with mock.
   Therefore, it is important to be able to configure whether to enable it or not.
+
+### options.scene
+
+- **Type:** `string | string[]`
+- **Default:** `''`
+- **Details:**
+
+  Scenario identifier for this mock.
+
+  When not configured, the mock is universal and always matches regardless of active scenario.When configured, the mock only matches when at least one of its scenarios matches one of the active scenarios.
 
 ### options.method
 
@@ -524,55 +688,181 @@ interface WebSocketSetupContext {
 }
 ```
 
-### Types
+### options.error
+
+- **Type:** `MockErrorConfig | undefined`
+- **Details:**
+
+  Configure error simulation, including error probability, error status code, error status text, and custom error response body.
 
 ```ts
-export type MockRequest = http.IncomingMessage & ExtraRequest
-
-export type MockResponse = http.ServerResponse<http.IncomingMessage> & {
+interface MockErrorConfig {
   /**
-   * Set cookie in response
-   * @see [cookies](https://github.com/pillarjs/cookies#cookiessetname--values--options)
+   * Error probability (0-1), default is 0.5
+   * @default 0.5
    */
+  probability?: number
+  /**
+   * Error status code, default is 500
+   * @default 500
+   */
+  status?: number
+  /**
+   * Error status text
+   */
+  statusText?: string
+  /**
+   * Custom error response body, suitable for when the status is 200, but the response body needs to simulate an error scenario
+   * @example
+   * { code: 500, msg: 'Internal Server Error', result: null }
+   */
+  body?: ResponseBody | ResponseBodyFn
+}
+```
+
+## Request/Response Enhance
+
+When defining methods using `headers`, `body`, and `response`, the plugin adds new content to the `request` and `response` parameters.
+
+**In Request:**
+
+The original type of `request` is [`http.IncomingMessage`](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/connect/index.d.ts). The plugin adds data such as `query`, `params`, `body`, `refererQuery`, and the `getCookie(name)` method for obtaining cookie information on this basis.
+
+```ts
+type Request = http.IncomingMessage & {
+  query: object
+  params: object
+  body: any
+  refererQuery: object
+  getCookie: (name: string, option?: Cookies.GetOption) => string | undefined
+}
+```
+
+**In Response:**
+
+The original type of `response` is `http.ServerResponse<http.IncomingMessage>`. The plugin adds `setCookie(name, value)` method for configuration cookies on this basis.
+
+``` ts
+type Response = http.ServerResponse<http.IncomingMessage> & {
   setCookie: (
     name: string,
     value?: string | null,
     option?: Cookies.SetOption,
   ) => void
 }
+```
 
-interface ExtraRequest {
-  /**
-   * The query string located after `?` in the request address has been parsed into JSON.
-   */
-  query: Record<string, any>
-  /**
-   * The queryString located after `?` in the referer request has been parsed as JSON.
-   */
-  refererQuery: Record<string, any>
-  /**
-   * Body data in the request
-   */
-  body: Record<string, any>
-  /**
-   * The params parameter parsed from the `/api/id/:id` in the request address.
-   */
-  params: Record<string, any>
-  /**
-   * headers data in the request
-   */
-  headers: Headers
-  /**
-   * Get the cookie carried in the request.
-   * @see [cookies](https://github.com/pillarjs/cookies#cookiesgetname--options)
-   */
-  getCookie: (name: string, option?: Cookies.GetOption) => string | undefined
+## Share Mock Data
+
+Due to each `mock` file being compiled as a separate entry point, the local files they depend on are also compiled within. Additionally, each mock file has an independent scope. This means that even if multiple mock files collectively depend on a `data.ts` file, they cannot share data. If one mock file modifies the data in `data.ts`, other mock files will not receive the updated data.
+
+To address this, the plugin offers a `defineMockData` function, which allows using `data.ts` as a shared data source within mock files.
+
+```ts
+type defineMockData<T> = (
+  key: string, // key
+  initialData: T, // initial data
+  options?: {
+    persistOnHMR?: boolean // persist the data value on HMR
+  } // options
+) => [getter, setter] & { value: T }
+```
+
+### Examples
+
+`data.ts`
+
+```ts
+import { defineMockData } from 'rspack-plugin-mock/helper'
+
+export default defineMockData('posts', [
+  { id: '1', title: 'title1', content: 'content1' },
+  { id: '2', title: 'title2', content: 'content2' },
+])
+```
+
+`*.mock.ts`
+
+```ts
+import { defineMock } from 'rspack-plugin-mock/helper'
+import posts from './data'
+
+export default defineMock([
+  {
+    url: '/api/posts',
+    body: () => posts.value
+  },
+  {
+    url: '/api/posts/delete/:id',
+    body: (params) => {
+      const id = params.id
+      posts.value = posts.value.filter(post => post.id !== id)
+      return { success: true }
+    }
+  }
+])
+```
+
+> **Tips：**
+>
+> The `defineMockData` function relies solely on the shared data support provided by `memory`.
+> If persistent mock data is required, it is recommended to use a `nosql` database like `lowdb` or `level`.
+
+## Custom-Path-Matching-Priority
+
+> Custom rules only affect links with dynamic parameters, such as: `/api/user/:id`
+
+The priority of the path matching rules built into the plugin can already meet most needs, but if you need more flexible customization of the matching rule priority, you can use the `priority` parameter.
+
+Exp：
+
+```ts
+import { MockServerPlugin } from 'rspack-plugin-mock'
+
+export default {
+  plugins: [
+    new MockServerPlugin({
+      priority: {
+        // The priority of matching rules is global.
+        // The rules declared in this option will take priority over the default rules.
+        // The higher the position of the rule in the array, the higher the priority.
+        global: ['/api/:a/b/c', '/api/a/:b/c', '/api/a/b/:c'],
+        // For some special cases where the priority of certain rules needs to be adjusted,
+        // this option can be used. For example, when a request matches both Rule A and Rule B,
+        // and Rule A has a higher priority than Rule B, but it is desired for Rule B to take effect.
+        special: {
+          // When both A and B or C match, and B or C is at the top of the sort order,
+          // insert A into the top position.
+          // The `when` option is used to further constrain the priority adjustment to
+          // be effective only for certain requests.
+          '/api/:a/:b/c': {
+            rules: ['/api/a/:b/:c', '/api/a/b/:c'],
+            when: ['/api/a/b/c']
+          },
+          // If no `when` is specified, it means that all requests matching the rules need to have their priorities adjusted. It can be abbreviated as `[key]: [...rules]`
+          '/api/:a/b': ['/api/a/:b'],
+        }
+      }
+    })
+  ]
 }
 ```
 
+> **Tip:**
+>
+> `priority` although it can adjust the priority,
+> most of the time you do not need to do so. For some special requests,
+> you can use static rules instead of `priority`,
+> as static rules always have the highest priority.
+
 ## Examples
 
-**exp:** Match `/api/test`, And returns a response body content with empty data
+`mock/**/*.mock.{ts,js,mjs,cjs,json,json5}`
+
+See more examples： [example](/example/)
+
+<details>
+<summary>Match <code>/api/test</code>, And returns a response body content with empty data</summary>
 
 ``` ts
 export default defineMock({
@@ -580,7 +870,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Match `/api/test` , And returns a static content data
+</details>
+
+<details>
+<summary>Match <code>/api/test</code> , And returns a static content data</summary>
 
 ``` ts
 export default defineMock({
@@ -589,7 +882,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Only Support `GET` Method
+</details>
+
+<details>
+<summary>Only Support <code>GET</code> Method</summary>
 
 ``` ts
 export default defineMock({
@@ -598,7 +894,10 @@ export default defineMock({
 })
 ```
 
-**exp:** In the response header, add a custom header and cookie
+</details>
+
+<details>
+<summary>In the response header, add a custom header and cookie</summary>
 
 ``` ts
 export default defineMock({
@@ -620,7 +919,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Define multiple mock requests for the same URL and match valid rules with validators
+</details>
+
+<details>
+<summary>Define multiple mock requests for the same URL and match valid rules with validators</summary>
 
 ``` ts
 export default defineMock([
@@ -655,7 +957,10 @@ export default defineMock([
 ])
 ```
 
-**exp:** Response Delay
+</details>
+
+<details>
+<summary>Response Delay</summary>
 
 ``` ts
 export default defineMock({
@@ -664,7 +969,10 @@ export default defineMock({
 })
 ```
 
-**exp:** The interface request failed
+</details>
+
+<details>
+<summary>The interface request failed</summary>
 
 ``` ts
 export default defineMock({
@@ -674,7 +982,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Dynamic route matching
+</details>
+
+<details>
+<summary>Dynamic route matching</summary>
 
 ``` ts
 export default defineMock({
@@ -687,7 +998,10 @@ export default defineMock({
 
 The `userId` in the route will be resolved into the `request.params` object.
 
-**exp:** Use the buffer to respond data
+</details>
+
+<details>
+<summary>Use the buffer to respond data</summary>
 
 ```ts
 import { Buffer } from 'node:buffer'
@@ -712,7 +1026,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Response file type
+</details>
+
+<details>
+<summary>Response file type</summary>
 
 Simulate file download, and pass in the file reading stream.
 
@@ -731,7 +1048,10 @@ export default defineMock({
 <a href="/api/download" download="my-app.dmg">Download File</a>
 ```
 
-**exp:** Use `mockjs`:
+</details>
+
+<details>
+<summary>Use <code>mockjs</code></summary>
 
 ``` ts
 import Mock from 'mockjs'
@@ -748,7 +1068,11 @@ export default defineMock({
 
 You need install `mockjs`
 
-**exp:** Use `response` to customize the response
+</details>
+
+<details>
+
+<summary>Use <code>response</code> to customize the response</summary>
 
 ``` ts
 export default defineMock({
@@ -768,7 +1092,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Use json / json5
+</details>
+
+<details>
+<summary>Use json / json5</summary>
 
 ``` json
 {
@@ -779,7 +1106,10 @@ export default defineMock({
 }
 ```
 
-**exp:** multipart, upload files.
+</details>
+
+<details>
+<summary>multipart, upload files.</summary>
 
 use [`formidable`](https://www.npmjs.com/package/formidable#readme) to support.
 
@@ -815,7 +1145,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Graphql
+</details>
+
+<details>
+<summary>Graphql</summary>
 
 ``` ts
 import { buildSchema, graphql } from 'graphql'
@@ -845,7 +1178,10 @@ fetch('/api/graphql', {
 })
 ```
 
-**exp:** WebSocket Mock
+</details>
+
+<details>
+<summary>WebSocket Mock</summary>
 
 ``` ts
 // ws.mock.ts
@@ -878,7 +1214,7 @@ export default defineMock({
 
 ``` ts
 // app.ts
-const ws = new WebSocket('ws://localhost:3000/socket.io')
+const ws = new WebSocket('ws://localhost:5173/socket.io')
 ws.addEventListener('open', () => {
   setInterval(() => {
     // heartbeat
@@ -890,7 +1226,10 @@ ws.addEventListener('message', (raw) => {
 })
 ```
 
-**exp：** EventSource Mock
+</details>
+
+<details>
+<summary>EventSource Mock</summary>
 
 ```ts
 // sse.mock.ts
@@ -923,6 +1262,8 @@ es.addEventListener('count', (e) => {
   console.log(e.data)
 })
 ```
+
+</details>
 
 ## Mock Services
 

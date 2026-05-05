@@ -26,7 +26,7 @@
 
 - ⚡️ 轻量，灵活，快速
 - 🧲 非注入式，对客户端代码无侵入
-- 💡 纯 ESModule
+- 💡 ESModule
 - 🦾 Typescript
 - 🔥 热更新
 - 🏷 支持 `.[cm]?js`/ `.ts` / `json` / `json5` 编写 mock 数据
@@ -41,6 +41,7 @@
 - 📤 支持 multipart 类型，模拟文件上传
 - 📥 支持模拟文件下载
 - ⚜️ 支持模拟 `WebSocket` 和 `Server-Sent Events`
+- 📝 支持 **请求录制** 和 **请求回放**
 - 🗂 支持构建可独立部署的小型mock服务
 
 ## 安装
@@ -211,7 +212,13 @@ export default defineMock({
 
 ## 插件配置
 
-### options.prefix
+- **类型：** `boolean`
+- **默认值：** `true`
+- **详情：**
+
+  是否开启 mock 服务。如果设置为 `false`，插件将不会生效。
+
+### prefix
 
 - **类型：** `string | string[]`
 - **详情：**
@@ -219,7 +226,7 @@ export default defineMock({
   为 http mock 服务配置 路径匹配规则，任何请求路径以 prefix 开头的都将被拦截代理。
   如果 prefix 以 `^` 开头，将被识别为 `RegExp`。
 
-### options.wsPrefix
+### wsPrefix
 
 - **类型：** `string | string[]`
 - **详情：**
@@ -229,7 +236,7 @@ export default defineMock({
 
   请避免在 `devServer.proxy` / `server.proxy` 中出现 `wsPrefix` 配置中相同的规则，因为这可能会导致规则冲突。
 
-### options.cwd
+### cwd
 
 - **类型：** `string`
 - **默认值：** `process.cwd()`
@@ -237,31 +244,31 @@ export default defineMock({
 
   配置 `include` 和 `exclude` 的匹配上下文。
 
-### options.dir
+### dir
 
 - **类型：** `string`
-- **默认值：** `mock` (相对于 [`options.cwd`](#optionscwd))
+- **默认值：** `mock` (相对于 [`cwd`](#cwd))
 - **详情：**
 
-  配置 mock 包的输出目录，相对于 [`options.cwd`](#optionscwd)
+  配置 mock 包的输出目录，相对于 [`cwd`](#cwd)
 
-### options.include
+### include
 
 - **类型：** `string | string[]`
-- **默认值：** `[**/*.mock.{js,ts,cjs,mjs,json,json5}']` (相对于 [`options.dir`](#optionsdir))
+- **默认值：** `[**/*.mock.{js,ts,cjs,mjs,json,json5}']` (相对于 [`dir`](#dir))
 - **详情：**
 
   glob 字符串匹配 mock 包含的文件。 查看 [picomatch](https://github.com/micromatch/picomatch#globbing-features)
 
-### options.exclude
+### exclude
 
 - **类型：** `string | string[]`
-- **默认值：** `[]`  (相对于 [`options.dir`](#optionsdir))
+- **默认值：** `[]`  (相对于 [`dir`](#dir))
 - **详情：**
 
   glob 字符串匹配 mock 排除的文件。 查看 [picomatch](https://github.com/micromatch/picomatch#globbing-features)
 
-### options.log
+### log
 
 - **类型：** `boolean | 'info' | 'warn' | 'error' | 'silent' | 'debug'`
 - **默认值：** `info`
@@ -269,7 +276,7 @@ export default defineMock({
 
   开启日志，或配置 日志级别
 
-### options.reload
+### reload
 
 - **类型：** `boolean`
 - **默认值：** `false`
@@ -278,7 +285,17 @@ export default defineMock({
   mock资源热更新时，仅更新了数据内容，但是默认不重新刷新页面。
   当你希望每次修改mock文件都刷新页面时，可以打开此选项。
 
-### options.cors
+### activeScene
+
+- **类型：** `string | string[]`
+- **默认值：** `''`
+- **详情：**
+
+  当前激活的场景，用于过滤 mock。
+
+  只有 [`scene`](#optionsscene) 与此有交集的 mock（或未配置 `scene` 的 mock）才会被考虑匹配。可通过 `X-Mock-Scene` 请求头按请求覆盖。
+
+### cors
 
 - **类型：** `boolean | CorsOptions`
 - **默认值：** `true`
@@ -286,7 +303,7 @@ export default defineMock({
 
   配置 [cors](https://github.com/expressjs/cors#configuration-options)
 
-### options.formidableOptions
+### formidableOptions
 
 - **类型：** `FormidableOptions`
 - **默认值：** `{ multiples: true }`
@@ -294,21 +311,21 @@ export default defineMock({
 
   配置 [formidable](https://github.com/node-formidable/formidable#options)
 
-### options.cookiesOptions
+### cookiesOptions
 
 - **类型：** `CookiesOptions`
 - **详情：**
 
   配置 [cookies](https://github.com/pillarjs/cookies#new-cookiesrequest-response--options)
 
-### options.bodyParserOptions
+### bodyParserOptions
 
 - **类型：** `BodyParserOptions`
 - **详情：**
 
   配置 [co-body](https://github.com/cojs/co-body#options)
 
-## options.build
+## build
 
 - **类型：** `boolean | ServerBuildOption`
 
@@ -338,7 +355,146 @@ export default defineMock({
 
   当需要构建一个小型mock服务时，可配置此项。插件会在构建生产包时，额外生成一个可部署的node mock 服务包。
 
+### record
+
+- **类型：** `false | RecordOptions`
+- **默认值：** `false`
+- **详情：**
+
+  是否开启请求录制功能。开启后，插件会记录所有请求数据，用于后续的请求回放。
+
+  插件在 `proxy` 的基础上，记录被 `http-proxy` 代理的请求数据。
+  在获得响应后，插件会将请求数据和响应数据记录到指定的目录中。
+
+  ```ts
+  interface RecordOptions {
+    /**
+     * 是否启用录制功能
+     * - true: 启用，自动录制 proxy 响应
+     * - false: 禁用（默认）
+     * @default false
+     */
+    enabled?: boolean
+    /**
+     * 过滤要录制的请求
+     * - 函数：自定义过滤函数，返回 true 表示录制
+     * - 对象：包含/排除模式，支持 glob 或 path-to-regexp 模式
+     * @example
+     * ```ts
+     * // Record all requests
+     * filter: (req) => true
+     * // Record requests using glob pattern
+     * filter: { mode: 'glob', include: '/api/**' }
+     * // Record requests using path-to-regexp pattern
+     * filter: { mode: 'path-to-regexp', include: '/api/:id' }
+     * ```
+     */
+    filter?: ((req: RecordedReq) => boolean) | {
+      /**
+       * 包含需要录制的请求链接
+       *
+       * glob 模式或 path-to-regexp 模式
+       * (使用 mode 选项设置模式，默认为 glob)
+       */
+      include?: string | string[]
+      /**
+       * 排除不需要录制的请求链接
+       *
+       * glob 模式或 path-to-regexp 模式
+       * (使用 mode 选项设置模式，默认为 glob)
+       */
+      exclude?: string | string[]
+      /**
+       * 包含/排除模式的匹配模式
+       * - 'glob': glob 模式匹配（默认）
+       * - 'path-to-regexp': path-to-regexp 模式匹配
+       */
+      mode: 'glob' | 'path-to-regexp'
+    }
+    /**
+     * 录制数据存储目录
+     * 相对于项目根目录
+     * @default 'mock/.recordings'
+     */
+    dir?: string
+
+    /**
+     * 是否覆盖已有录制数据
+     * - true: 相同请求覆盖旧数据（默认）
+     * - false: 保留旧数据，不录制新数据
+     * @default true
+     */
+    overwrite?: boolean
+    /**
+     * 录制数据过期时间（秒）
+     * - 0: 永不过期（默认）
+     * - 正数：指定秒数后过期
+     * @default 0
+     */
+    expires?: number
+
+    /**
+     * 要录制的状态码
+     * - 为空数组时记录所有状态码（默认）
+     * - 指定一个或多个状态码进行过滤
+     * @default []
+     */
+    status?: number | number[]
+
+    /**
+     * 是否在录制目录中添加 .gitignore
+     * - true: 添加（默认）
+     * - false: 不添加
+     * @default true
+     */
+    gitignore?: boolean
+  }
+  ```
+
+### replay
+
+- **类型：** `boolean`
+- **默认值：** `false`
+- **详情：**
+
+  是否开启请求回放功能。开启后，插件会根据记录的请求数据，模拟响应。
+
+### priority
+
+- **类型：** `MockMatchPriority`
+- **详情：**
+
+  自定义 路径匹配规则优先级。[查看更多](#自定义匹配优先级)
+
+  **默认值：** `undefined`
+
 ## Mock 配置
+
+**http mock**
+
+```ts
+import { defineMock } from 'rspack-plugin-mock/helper'
+export default defineMock({
+  url: '/api/test',
+  body: { message: 'hello world' }
+})
+```
+
+**websocket mock**
+
+```ts
+import { defineMock } from 'rspack-plugin-mock/helper'
+
+export default defineMock({
+  url: '/socket.io',
+  ws: true,
+  setup(wss) {
+    wss.on('connection', (ws, req) => {
+      console.log('connected')
+    })
+  }
+})
+```
 
 ### options.url
 
@@ -355,6 +511,17 @@ export default defineMock({
 
   是否启动对该接口的mock，在多数场景下，我们仅需要对部分接口进行 mock，
   而不是对所有配置了mock的请求进行全量mock，所以是否能够配置是否启用很重要
+
+### options.scene
+
+- **类型：** `string | string[]`
+- **默认值：** `''`
+- **详情：**
+
+  该 mock 的场景标识。
+
+  未配置时，该 mock 为全场景通用，不受 [activeScene](#activescene) 限制。
+  配置后，只有 `scene` 中任意一项与 [activeScene](#activescene) 中任意一项匹配时，该 mock 才会激活。
 
 ### options.method
 
@@ -513,51 +680,174 @@ interface WebSocketSetupContext {
 }
 ```
 
-### Types
+### options.error
+
+- **类型：** `MockErrorConfig | undefined`
+- **详情：**
+
+  配置错误模拟，包括错误概率、错误状态码、错误状态文本、以及自定义错误响应体。
 
 ```ts
-export type MockRequest = http.IncomingMessage & ExtraRequest
-
-export type MockResponse = http.ServerResponse<http.IncomingMessage> & {
+interface MockErrorConfig {
   /**
-   * 设置响应体 cookies
-   * @see [cookies](https://github.com/pillarjs/cookies#cookiessetname--values--options)
+   * 错误概率（0-1），默认 0.5
+   * @default 0.5
    */
+  probability?: number
+  /**
+   * 错误状态码，默认 500
+   * @default 500
+   */
+  status?: number
+  /**
+   * 错误状态文本
+   */
+  statusText?: string
+  /**
+   * 自定义错误响应体，适用于 status 为 200，但响应体需要模拟错误场景
+   * @example
+   * { code: 500, msg: 'Internal Server Error', result: null }
+   */
+  body?: ResponseBody | ResponseBodyFn
+}
+```
+
+### Request/Response 增强
+
+当你配置 `headers`, `body`, and `response` 的函数形式时, 插件在参数 `request` 和 `response` 添加了新的内容用于帮助获取必要的数据.
+
+**Request:**
+
+`request`的原始数据类型是[`Connect.IncomingMessage`](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/connect/index.d.ts). 插件在此基础上，增加了 `query`, `params`, `body`, `refererQuery`，以及 `getCookie(name)` 方法用于获取cookie信息。
+
+```ts
+type Request = Connect.IncomingMessage & {
+  query: object
+  params: object
+  body: any
+  refererQuery: object
+  getCookie: (name: string, option?: Cookies.GetOption) => string | undefined
+}
+```
+
+**Response:**
+
+`response` 的原始数据类型是`http.ServerResponse<http.IncomingMessage>`. 插件在此基础上增加了 `setCookie(name, value)` 方法用于设置cookie
+
+```ts
+type Response = http.ServerResponse<http.IncomingMessage> & {
   setCookie: (
     name: string,
     value?: string | null,
     option?: Cookies.SetOption,
   ) => void
 }
+```
 
-interface ExtraRequest {
-  /**
-   * 请求地址中位于 `?` 后面的 queryString，已解析为 json
-   */
-  query: Record<string, any>
-  /**
-   * 请求 referer 中位于 `?` 后面的 queryString，已解析为 json
-   */
-  refererQuery: Record<string, any>
-  /**
-   * 请求体中 body 数据
-   */
-  body: Record<string, any>
-  /**
-   * 请求地址中，`/api/id/:id` 解析后的 params 参数
-   */
-  params: Record<string, any>
-  /**
-   * 请求体中 headers
-   */
-  headers: Headers
-  /**
-   * 获取 请求中携带的 cookie
-   * @see [cookies](https://github.com/pillarjs/cookies#cookiesgetname--options)
-   */
-  getCookie: (name: string, option?: Cookies.GetOption) => string | undefined
+> **注意：**
+>
+> 如果使用 json/json5 编写 mock文件，则不支持使用 `response` 方法，以及不支持使用其他字段的函数形式。
+
+## 共享 Mock 数据
+
+由于每个mock文件都是作为独立的入口进行编译，其依赖的本地文件也编译在内，
+且每个mock文件拥有独立的作用域，这使得即使多个 mock文件共同依赖某一个`data.ts`文件，也无法共享数据。
+某个 `mock` 文件对 `data.ts` 中的数据进行修改，其它`mock`文件不会获取到修改后的数据。
+
+为此，插件提供了一个 `defineMockData` 函数，用于在 `mock` 文件中使用 `data.ts` 作为共享数据源。
+
+```ts
+type defineMockData<T> = (
+  key: string, // 数据唯一标识符
+  initialData: T, // 初始化数据
+  options?: {
+    persistOnHMR?: boolean // 是否在热更新时保持数据状态
+  } // 可选配置
+) => [getter, setter] & { value: T }
+```
+
+### 用法
+
+`data.ts`
+
+```ts
+import { defineMockData } from 'rspack-plugin-mock/helper'
+
+export default defineMockData('posts', [
+  { id: '1', title: 'title1', content: 'content1' },
+  { id: '2', title: 'title2', content: 'content2' },
+])
+```
+
+`*.mock.ts`
+
+```ts
+import { defineMock } from 'rspack-plugin-mock/helper'
+import posts from './data'
+
+export default defineMock([
+  {
+    url: '/api/posts',
+    body: () => posts.value
+  },
+  {
+    url: '/api/posts/delete/:id',
+    body: (params) => {
+      const id = params.id
+      posts.value = posts.value.filter(post => post.id !== id)
+      return { success: true }
+    }
+  }
+])
+```
+
+> **注意：**
+>
+> `defineMockData` 仅是基于 `memory` 提供的共享数据支持，
+> 如果需要做 mock 数据持久化，建议使用 `nosql`， 如 `lowdb` 或 `level` 等。
+
+## 自定义匹配优先级
+
+> 自定义规则仅影响包含动态参数的链接，如： `/api/user/:id`
+
+插件内置的路径匹配规则优先级，已经能够满足大部分需求，但如果你需要更加灵活的自定义匹配规则优先级，
+可以使用 `priority` 参数。
+
+示例：
+
+```ts
+import { MockServerPlugin } from 'rspack-plugin-mock'
+
+export default {
+  plugins: [
+    new MockServerPlugin({
+      priority: {
+        // 匹配规则优先级, 全局生效。声明在该选项中的规则将优先于默认规则生效。
+        // 规则在数组越靠前的位置，优先级越高。
+        global: ['/api/:a/b/c', '/api/a/:b/c', '/api/a/b/:c'],
+        // 对于一些特殊情况，需要调整部分规则的优先级，可以使用此选项。
+        // 比如一个请求同时命中了规则 A 和 B，且 A 比 B 优先级高， 但期望规则 B 生效时。
+        special: {
+          // 当请求同时命中 [key] 和 rules 中的任意一个时，优先匹配 [key] 。
+          // when 用于进一步约束具体是哪些请求需要调整优先级。
+          '/api/:a/:b/c': {
+            rules: ['/api/a/:b/:c', '/api/a/b/:c'],
+            when: ['/api/a/b/c']
+          },
+          // 如果不需要 when, 则表示命中规则的请求都需要调整优先级。
+          // 可以简写为 [key]: [...rules]
+          '/api/:a/b': ['/api/a/:b'],
+        }
+      }
+    })
+  ]
 }
 ```
+
+> **注意：**
+>
+> `priority` 虽然可以调整优先级，但大多数时候，你都没有必要这么做。
+> 对于一些特殊情况的请求，可以使用 静态规则来替代 `priority`，静态规则总是拥有最高优先级。
 
 ## Example
 
@@ -565,7 +855,8 @@ interface ExtraRequest {
 
 查看更多示例： [example](/example/)
 
-**exp:** 命中 `/api/test` 请求，并返回一个 数据为空的响应体内容
+<details>
+<summary>命中 <code>/api/test</code> 请求，并返回一个 数据为空的响应体内容</summary>
 
 ```ts
 export default defineMock({
@@ -573,7 +864,9 @@ export default defineMock({
 })
 ```
 
-**exp:** 命中 `/api/test` 请求，并返回一个固定内容数据
+</details>
+<details>
+<summary>命中 <code>/api/test</code> 请求，并返回一个固定内容数据</summary>
 
 ```ts
 export default defineMock({
@@ -589,7 +882,10 @@ export default defineMock({
 })
 ```
 
-**exp:** 限定只允许 `GET` 请求
+</details>
+
+<details>
+<summary>限定只允许 <code>GET</code> 请求</summary>
 
 ```ts
 export default defineMock({
@@ -598,7 +894,10 @@ export default defineMock({
 })
 ```
 
-**exp:**  在返回的响应头中，添加自定义 header 和 cookie
+</details>
+
+<details>
+<summary>在返回的响应头中，添加自定义 header 和 cookie</summary>
 
 ```ts
 export default defineMock({
@@ -620,7 +919,10 @@ export default defineMock({
 })
 ```
 
-**exp:**  定义多个相同url请求mock，并使用验证器匹配生效规则
+</details>
+
+<details>
+<summary>定义多个相同url请求mock，并使用验证器匹配生效规则</summary>
 
 ```ts
 export default defineMock([
@@ -654,7 +956,10 @@ export default defineMock([
 ])
 ```
 
-**exp:**  延迟接口响应：
+</details>
+
+<details>
+<summary>延迟接口响应</summary>
 
 ```ts
 export default defineMock({
@@ -663,7 +968,10 @@ export default defineMock({
 })
 ```
 
-**exp:**  使接口请求失败
+</details>
+
+<details>
+<summary>使接口请求失败</summary>
 
 ```ts
 export default defineMock({
@@ -673,7 +981,10 @@ export default defineMock({
 })
 ```
 
-**exp:** 动态路由匹配
+</details>
+
+<details>
+<summary>动态路由匹配</summary>
 
 ```ts
 export default defineMock({
@@ -686,7 +997,10 @@ export default defineMock({
 
 路由中的 `userId`将会解析到 `request.params` 对象中.
 
-**exp:** 使用 buffer 响应数据
+</details>
+
+<details>
+<summary>使用 buffer 响应数据</summary>
 
 ```ts
 import { Buffer } from 'node:buffer'
@@ -710,7 +1024,10 @@ export default defineMock({
 })
 ```
 
-**exp:** 响应文件类型
+</details>
+
+<details>
+<summary>响应文件类型</summary>
 
 模拟文件下载，传入文件读取流
 
@@ -729,7 +1046,10 @@ export default defineMock({
 <a href="/api/download" download="my-app.dmg">下载文件</a>
 ```
 
-**exp:** 使用 `mockjs` 生成响应数据:
+</details>
+
+<details>
+<summary>使用 <code>mockjs</code> 生成响应数据</summary>
 
 ```ts
 import Mock from 'mockjs'
@@ -746,7 +1066,10 @@ export default defineMock({
 
 请先安装 `mockjs`
 
-**exp:** 使用 `response` 自定义响应
+</details>
+
+<details>
+<summary>使用 <code>response</code> 自定义响应</summary>
 
 ```ts
 export default defineMock({
@@ -766,7 +1089,10 @@ export default defineMock({
 })
 ```
 
-**exp:** 使用 json / json5
+</details>
+
+<details>
+<summary>使用 json / json5</summary>
 
 ```json
 {
@@ -777,7 +1103,10 @@ export default defineMock({
 }
 ```
 
-**exp:** multipart, 文件上传.
+</details>
+
+<details>
+<summary>multipart, 文件上传</summary>
 
 通过 [`formidable`](https://www.npmjs.com/package/formidable#readme) 支持。
 
@@ -813,7 +1142,10 @@ export default defineMock({
 })
 ```
 
-**exp:** Graphql
+</details>
+
+<details>
+<summary>Graphql</summary>
 
 ```ts
 import { buildSchema, graphql } from 'graphql'
@@ -843,7 +1175,10 @@ fetch('/api/graphql', {
 })
 ```
 
-**exp:** WebSocket Mock
+</details>
+
+<details>
+<summary>WebSocket Mock</summary>
 
 ```ts
 // ws.mock.ts
@@ -888,7 +1223,10 @@ ws.addEventListener('message', (raw) => {
 })
 ```
 
-**示例：** EventSource Mock
+</details>
+
+<details>
+<summary>EventSource Mock</summary>
 
 ```ts
 // sse.mock.ts
@@ -921,6 +1259,8 @@ es.addEventListener('count', (e) => {
   console.log(e.data)
 })
 ```
+
+</details>
 
 ## 独立部署的小型mock服务
 
