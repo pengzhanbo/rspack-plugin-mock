@@ -6,7 +6,7 @@ trustPolicyExclude:
 
 packages:
   - examples/*
-onlyBuiltDependencies:
-  - core-js
-  - esbuild
-  - unrs-resolver
+
+allowBuilds:
+  core-js: true
+  esbuild: true
