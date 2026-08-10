@@ -64,7 +64,7 @@
     "lint": "eslint .",
     "prepare": "husky",
     "release:publish": "pnpm -r publish",
-    "release:changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
+    "release:changelog": "conventional-changelog -p angular",
     "release": "bumpp package.json --execute=\"pnpm release:changelog\" --commit --all --push --tag"
   },
   "peerDependencies": {
@@ -116,7 +116,8 @@
     "@types/picomatch": "^4.0.3",
     "@types/ws": "^8.18.1",
     "bumpp": "^12.2.0",
-    "conventional-changelog-cli": "^5.0.0",
+    "conventional-changelog": "^7.2.0",
+    "conventional-changelog-angular": "^8.3.1",
     "eslint": "^10.8.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",

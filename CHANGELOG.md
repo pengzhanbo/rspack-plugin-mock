@@ -1,3 +1,4 @@
+
 # [2.1.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v2.0.0...v2.1.0) (2026-05-05)
 
 
