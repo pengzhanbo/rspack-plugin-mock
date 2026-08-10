@@ -1,3 +1,16 @@
+# [2.2.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v2.1.0...v2.2.0) (2026-08-10)
+
+
+### Bug Fixes
+
+* fix incorrectly merge req.headers data into request ([b2480fb](https://github.com/pengzhanbo/rspack-plugin-mock/commit/b2480fb2b1c18e7b3dd6fc5721ae851ea40d048a))
+* fix path filter ([4aa7fc9](https://github.com/pengzhanbo/rspack-plugin-mock/commit/4aa7fc9e1fe1e3b8dab8beb2f7d7bc66405d66d9))
+
+
+### Features
+
+* remove `is-core-module`,migrate to `isBuiltin` ([2d37183](https://github.com/pengzhanbo/rspack-plugin-mock/commit/2d371835850f3dacb58ab4dfae9f84aa7bec8ff2))
+* upgrade `cookies` ([180ab52](https://github.com/pengzhanbo/rspack-plugin-mock/commit/180ab52347184d8351df3f501d29678ead3e56ac))
 
 # [2.1.0](https://github.com/pengzhanbo/rspack-plugin-mock/compare/v2.0.0...v2.1.0) (2026-05-05)
 
