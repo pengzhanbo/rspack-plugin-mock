@@ -1,22 +1,23 @@
+// oxlint-disable max-lines-per-function
 import type { Server } from 'node:http'
 import type http from 'node:http'
 import type { Http2SecureServer } from 'node:http2'
 import type { WebSocket } from 'ws'
-import type { MockCompiler } from '../compiler'
-import type { Logger } from '../core'
+import type { MockCompiler } from '../compiler/index.js'
+import type { Logger } from '../core/index.js'
 import type {
   MockRequest,
   MockServerPluginOptions,
   MockWebsocketItem,
   PathFilter,
   WebSocketSetupContext,
-} from '../types'
+} from '../types/index.js'
 import { isString, objectKeys, partition } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import Cookies from 'cookies'
 import { WebSocketServer } from 'ws'
-import { parseRequestParams } from '../mockHttp'
-import { createMatcher, doesProxyContextMatchUrl, isPathMatch, urlParse } from '../utils'
+import { parseRequestParams } from '../mockHttp/index.js'
+import { createMatcher, doesProxyContextMatchUrl, isPathMatch, urlParse } from '../utils/index.js'
 
 type PoolMap = Map<string, WSSMap>
 type WSSMap = Map<string, WebSocketServer>
@@ -42,11 +43,7 @@ export interface MockSocketOptions {
 export function mockWebSocket(
   compiler: MockCompiler,
   httpServer: Server | Http2SecureServer | null,
-  {
-    wsProxies: proxies,
-    cookiesOptions,
-    logger,
-  }: MockSocketOptions,
+  { wsProxies: proxies, cookiesOptions, logger }: MockSocketOptions,
 ): void {
   // 热更新文件映射
   const hmrMap = new Map<string, Set<string>>()
@@ -56,16 +53,18 @@ export function mockWebSocket(
 
   const getWssMap = (mockUrl: string): WSSMap => {
     let wssMap = poolMap.get(mockUrl)
-    if (!wssMap)
+    if (!wssMap) {
       poolMap.set(mockUrl, (wssMap = new Map()))
+    }
 
     return wssMap
   }
 
-  const addHmr = (filepath: string, mockUrl: string) => {
+  const addHmr = (filepath: string, mockUrl: string): void => {
     let urlList = hmrMap.get(filepath)
-    if (!urlList)
+    if (!urlList) {
       hmrMap.set(filepath, (urlList = new Set()))
+    }
     urlList.add(mockUrl)
   }
 
@@ -76,24 +75,19 @@ export function mockWebSocket(
     context: WebSocketSetupContext,
     pathname: string,
     filepath: string,
-  ) => {
+  ): void => {
     try {
       mock.setup?.(wss, context)
       wss.on('close', () => wssMap.delete(pathname))
       wss.on('error', (e) => {
         logger.error(
-          `${ansis.red(
-            `WebSocket mock error at ${wss.path}`,
-          )}\n${e}\n  at setup (${filepath})`,
+          `${ansis.red(`WebSocket mock error at ${wss.path}`)}\n${e}\n  at setup (${filepath})`,
           mock.log,
         )
       })
-    }
-    catch (e) {
+    } catch (e) {
       logger.error(
-        `${ansis.red(
-          `WebSocket mock error at ${wss.path}`,
-        )}\n${e}\n  at setup (${filepath})`,
+        `${ansis.red(`WebSocket mock error at ${wss.path}`)}\n${e}\n  at setup (${filepath})`,
         mock.log,
       )
     }
@@ -105,7 +99,7 @@ export function mockWebSocket(
     mock: MockWebsocketItem,
     pathname: string,
     filepath: string,
-  ) => {
+  ): void => {
     const { cleanupList, connectionList, context } = wssContextMap.get(wss)!
     // 重启/热更新时， 需要重新执行 setup()，在执行前，需要清除旧的循环/自动任务/监听
     // 多个客户端 ws 连接，每个 ws连接都需要清除旧的监听，并手动触发一次 connection 监听
@@ -114,44 +108,49 @@ export function mockWebSocket(
     wss.removeAllListeners()
 
     setupWss(wssMap, wss, mock, context, pathname, filepath)
-    connectionList.forEach(({ ws, req }) =>
-      emitConnection(wss, ws, req, connectionList),
-    )
+    connectionList.forEach(({ ws, req }) => emitConnection(wss, ws, req, connectionList))
   }
 
   // 检测 ws 相关的 mock 文件更新
   // 如果 当前的 ws 配置已 建立 wss 连接，则重启该 wss 连接
   compiler.on('update', ({ filepath }) => {
-    if (!hmrMap.has(filepath))
+    if (!hmrMap.has(filepath)) {
       return
+    }
     const mockUrlList = hmrMap.get(filepath)
-    if (!mockUrlList)
+    if (!mockUrlList) {
       return
+    }
     for (const mockUrl of mockUrlList.values()) {
       for (const mock of compiler.mockData[mockUrl]) {
-        if (!mock.ws || (mock as any).__filepath__ !== filepath)
+        if (!mock.ws || (mock as any).__filepath__ !== filepath) {
           return
+        }
         const wssMap = getWssMap(mockUrl)
-        for (const [pathname, wss] of wssMap.entries())
+        for (const [pathname, wss] of wssMap.entries()) {
           restartWss(wssMap, wss, mock, pathname, filepath)
+        }
       }
     }
   })
 
   const [globFilter, contextFilter] = partition(
     proxies,
-    item => isString(item) && item.includes('*'),
+    (item) => isString(item) && item.includes('*'),
   ) as [string[], (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]]
 
   const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter, [], false)
 
   httpServer?.on('upgrade', (req, socket, head) => {
-    const { pathname, query } = urlParse(req.url!)
+    const { pathname, query } = urlParse(req.url)
     if (!pathname || proxies.length === 0) {
       return
     }
     // 旧的匹配规则，前缀匹配
-    if (contextFilter.length && !contextFilter.some(context => doesProxyContextMatchUrl(context, req))) {
+    if (
+      contextFilter.length &&
+      !contextFilter.some((context) => doesProxyContextMatchUrl(context, req))
+    ) {
       return
     }
     // 新的匹配规则，glob匹配
@@ -160,16 +159,18 @@ export function mockWebSocket(
     }
 
     const mockData = compiler.mockData
-    const mockUrl = objectKeys(mockData).find(key => isPathMatch(key, pathname))
-    if (!mockUrl)
+    const mockUrl = objectKeys(mockData).find((key) => isPathMatch(key, pathname))
+    if (!mockUrl) {
       return
+    }
 
-    const mock = mockData[mockUrl].find((mock) => {
-      return mock.url && mock.ws && isPathMatch(mock.url, pathname)
-    }) as MockWebsocketItem
+    const mock = mockData[mockUrl].find(
+      (item) => item.url && item.ws && isPathMatch(item.url, pathname),
+    ) as MockWebsocketItem
 
-    if (!mock)
+    if (!mock) {
       return
+    }
 
     const filepath = (mock as any).__filepath__
 
@@ -182,7 +183,7 @@ export function mockWebSocket(
     if (!wssContext) {
       const cleanupList: (() => void)[] = []
       const context: WebSocketSetupContext = {
-        onCleanup: cleanup => cleanupList.push(cleanup),
+        onCleanup: (cleanup) => cleanupList.push(cleanup),
       }
       wssContext = { cleanupList, context, connectionList: [] }
       wssContextMap.set(wss, wssContext)
@@ -191,8 +192,8 @@ export function mockWebSocket(
     }
 
     const request = req as MockRequest
-    const cookies = new Cookies(req, req as any, cookiesOptions)
-    const { query: refererQuery } = urlParse(req.headers.referer || '')
+    const cookies = new Cookies(req, req, cookiesOptions)
+    const { query: refererQuery } = urlParse(req.headers.referer ?? '')
 
     request.query = query
     request.refererQuery = refererQuery
@@ -228,24 +229,32 @@ export function mockWebSocket(
 
 function getWss(wssMap: WSSMap, pathname: string): WebSocketServer {
   let wss = wssMap.get(pathname)
-  if (!wss)
+  if (!wss) {
     wssMap.set(pathname, (wss = new WebSocketServer({ noServer: true })))
+  }
 
   return wss
 }
 
-function emitConnection(wss: WebSocketServer, ws: WebSocket, req: MockRequest, connectionList: Connection[]) {
+function emitConnection(
+  wss: WebSocketServer,
+  ws: WebSocket,
+  req: MockRequest,
+  connectionList: Connection[],
+): void {
   wss.emit('connection', ws, req)
   ws.on('close', () => {
-    const i = connectionList.findIndex(item => item.ws === ws)
-    if (i !== -1)
+    const i = connectionList.findIndex((item) => item.ws === ws)
+    if (i !== -1) {
       connectionList.splice(i, 1)
+    }
   })
 }
 
-function cleanupRunner(cleanupList: WSSContext['cleanupList']) {
+function cleanupRunner(cleanupList: WSSContext['cleanupList']): void {
   let cleanup: (() => void) | undefined
   // eslint-disable-next-line no-cond-assign
-  while ((cleanup = cleanupList.shift()))
+  while ((cleanup = cleanupList.shift())) {
     cleanup?.()
+  }
 }

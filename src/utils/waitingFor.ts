@@ -6,8 +6,7 @@ export function waitingFor<T>(
     const value = getter()
     if (value) {
       onSuccess(value)
-    }
-    else if (retry < maxRetry) {
+    } else if (retry < maxRetry) {
       setTimeout(() => wait(getter, retry + 1), 100)
     }
   }

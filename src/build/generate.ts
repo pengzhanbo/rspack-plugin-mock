@@ -1,16 +1,16 @@
-import type { ResolvePluginOptions } from '../core/options'
-import type { ServerBuildOption } from '../types'
+import type { ResolvePluginOptions } from '../core/options.js'
+import type { ServerBuildOption } from '../types/index.js'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import ansis from 'ansis'
 import { glob } from 'tinyglobby'
-import { transformWithRspack } from '../compiler'
-import { createMatcher } from '../utils'
-import { generatePackageJson } from './packageJson'
-import { generatorServerEntryCode } from './serverEntryCode'
-import { writeMockEntryFile } from './writeEntryFile'
+import { transformWithRspack } from '../compiler/index.js'
+import { createMatcher } from '../utils/index.js'
+import { generatePackageJson } from './packageJson.js'
+import { generatorServerEntryCode } from './serverEntryCode.js'
+import { writeMockEntryFile } from './writeEntryFile.js'
 
 export async function buildMockServer(
   options: ResolvePluginOptions,
@@ -30,7 +30,7 @@ export async function buildMockServer(
     alias: options.alias,
   })
   await fsp.unlink(entryFile)
-  const outputList: { filename: string, source: string }[] = [
+  const outputList: { filename: string; source: string }[] = [
     { filename: 'mock-data.js', source: code },
     { filename: 'index.js', source: generatorServerEntryCode(options) },
     { filename: 'package.json', source: generatePackageJson(options, externals) },

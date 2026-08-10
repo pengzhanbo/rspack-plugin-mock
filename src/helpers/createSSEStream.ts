@@ -52,22 +52,35 @@ class SSEStream extends Transform {
     return super.pipe(destination, options)
   }
 
-  _transform(message: SSEMessage, encoding: string, callback: (error?: (Error | null), data?: any) => void): void {
-    if (message.comment)
+  _transform(
+    message: SSEMessage,
+    encoding: string,
+    callback: (error?: Error | null, data?: any) => void,
+  ): void {
+    if (message.comment) {
       this.push(`: ${message.comment}\n`)
-    if (message.event)
+    }
+    if (message.event) {
       this.push(`event: ${message.event}\n`)
-    if (message.id)
+    }
+    if (message.id) {
       this.push(`id: ${message.id}\n`)
-    if (message.retry)
+    }
+    if (message.retry) {
       this.push(`retry: ${message.retry}\n`)
-    if (message.data)
+    }
+    if (message.data) {
       this.push(dataString(message.data))
+    }
     this.push('\n')
     callback()
   }
 
-  write(message: SSEMessage, encoding?: BufferEncoding, cb?: (error: Error | null | undefined) => void): boolean
+  write(
+    message: SSEMessage,
+    encoding?: BufferEncoding,
+    cb?: (error: Error | null | undefined) => void,
+  ): boolean
   write(message: SSEMessage, cb?: (error: Error | null | undefined) => void): boolean
   write(message: SSEMessage, ...args: any[]): boolean {
     return super.write(message, ...args)
@@ -83,13 +96,21 @@ class SSEStream extends Transform {
 }
 
 function dataString(data: string | object): string {
-  if (typeof data === 'object')
+  if (typeof data === 'object') {
     return dataString(JSON.stringify(data))
-  return data.split(/\r\n|\r|\n/).map(line => `data: ${line}\n`).join('')
+  }
+  return data
+    .split(/\r\n|\r|\n/)
+    .map((line) => `data: ${line}\n`)
+    .join('')
 }
 
 /**
  * 创建一个 Server-sent events 写入流，用于支持模拟 EventSource
+ *
+ * @param req - Request object / 请求对象
+ * @param res - Response object / 响应对象
+ * @returns SSEStream instance / SSEStream 实例
  *
  * @example
  * ```ts

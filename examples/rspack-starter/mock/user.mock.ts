@@ -1,5 +1,5 @@
 import { defineMock } from 'rspack-plugin-mock/helper'
-import user from './data/user'
+import user from './data/user.js'
 
 export default defineMock([
   {

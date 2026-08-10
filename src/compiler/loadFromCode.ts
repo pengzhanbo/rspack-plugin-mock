@@ -28,7 +28,7 @@ export async function loadFromCode<T = any>({
 
 async function importDefault(filepath: string): Promise<any> {
   const mod = await import(filepath)
-  return mod.default || mod
+  return mod.default ?? mod
 }
 
 function getHash(str: string): string {

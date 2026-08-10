@@ -46,8 +46,7 @@ export async function responseRender(
       let str = ''
       if (type.startsWith('application/json')) {
         str = JSON.stringify(await response.json(), null, 2)
-      }
-      else {
+      } else {
         str = await response.text()
       }
 
@@ -56,7 +55,6 @@ export async function responseRender(
       code.classList.add('code')
       !str && code.classList.add('no-content')
       container.appendChild(code)
-    }
-    catch {}
+    } catch {}
   }
 }

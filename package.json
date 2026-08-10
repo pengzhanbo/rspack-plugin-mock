@@ -1,24 +1,27 @@
 {
   "name": "rspack-plugin-mock",
-  "type": "module",
   "version": "2.2.0",
-  "packageManager": "pnpm@11.21.0",
   "description": "inject api mock server to development server",
-  "author": "pengzhanbo <q942450674@outlook.com> (https://github.com/pengzhanbo)",
-  "license": "MIT",
+  "keywords": [
+    "mock",
+    "mock server",
+    "rsbuild",
+    "rsbuild-plugin",
+    "rspack",
+    "rspack-plugin"
+  ],
   "homepage": "https://github.com/pengzhanbo/rspack-plugin-mock",
+  "license": "MIT",
+  "author": "pengzhanbo <q942450674@outlook.com> (https://github.com/pengzhanbo)",
   "repository": {
     "type": "git",
     "url": "https://github.com/pengzhanbo/rspack-plugin-mock"
   },
-  "keywords": [
-    "mock",
-    "mock server",
-    "rspack",
-    "rsbuild",
-    "rspack-plugin",
-    "rsbuild-plugin"
+  "files": [
+    "dist"
   ],
+  "type": "module",
+  "types": "dist/index.d.ts",
   "imports": {
     "#json5-loader": "./dist/json5-loader.mjs"
   },
@@ -29,38 +32,19 @@
     "./server": "./dist/server.js",
     "./package.json": "./package.json"
   },
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=20.19.0",
-    "pnpm": ">=9"
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "dev": "tsdown src --watch",
     "build": "tsdown",
-    "lint": "eslint .",
+    "lint": "oxlint . --type-check --type-aware",
+    "format": "oxfmt .",
     "prepare": "simple-git-hooks",
     "release:publish": "pnpm -r publish",
     "release:changelog": "conventional-changelog -p angular",
     "release": "bumpp package.json --execute=\"pnpm release:changelog\" --commit --all --push --tag"
-  },
-  "peerDependencies": {
-    "@rsbuild/core": ">=2.0.0",
-    "@rspack/core": ">=2.0.0",
-    "zstd-codec": ">=0.1.5"
-  },
-  "peerDependenciesMeta": {
-    "@rsbuild/core": {
-      "optional": true
-    },
-    "@rspack/core": {
-      "optional": true
-    },
-    "zstd-codec": {
-      "optional": true
-    }
   },
   "dependencies": {
     "@pengzhanbo/utils": "^3.10.0",
@@ -81,7 +65,7 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@pengzhanbo/eslint-config": "^2.8.5",
+    "@pengzhanbo/oxc-config": "^2.8.5",
     "@rsbuild/core": "^2.1.10",
     "@rspack/core": "^2.1.8",
     "@types/co-body": "^6.1.3",
@@ -95,22 +79,42 @@
     "bumpp": "^12.2.0",
     "conventional-changelog": "^7.2.0",
     "conventional-changelog-angular": "^8.3.1",
-    "eslint": "^10.8.1",
     "js-tokens": "^10.0.0",
     "nano-staged": "^1.0.2",
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "simple-git-hooks": "^2.13.1",
     "tsdown": "^0.22.14",
     "typescript": "6.0.3",
     "zstd-codec": "^0.1.5"
   },
+  "peerDependencies": {
+    "@rsbuild/core": ">=2.0.0",
+    "@rspack/core": ">=2.0.0",
+    "zstd-codec": ">=0.1.5"
+  },
+  "peerDependenciesMeta": {
+    "@rsbuild/core": {
+      "optional": true
+    },
+    "@rspack/core": {
+      "optional": true
+    },
+    "zstd-codec": {
+      "optional": true
+    }
+  },
   "simple-git-hooks": {
     "pre-commit": "./node_modules/.bin/nano-staged --allow-empty"
   },
   "nano-staged": {
-    "*": "eslint --fix"
+    "*.{js,ts,mjs,cjs}": "pnpm run lint",
+    "*": "oxfmt --no-error-on-unmatched-pattern"
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  }
+  "engines": {
+    "node": ">=20.19.0",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@11.21.0"
 }

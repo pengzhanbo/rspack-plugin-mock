@@ -1,4 +1,4 @@
-import type { LogLevel, LogType } from '../types'
+import type { LogLevel, LogType } from '../types/index.js'
 import { isBoolean } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 
@@ -17,30 +17,24 @@ export const logLevels: Record<LogLevel, number> = {
   debug: 4,
 }
 
-export function createLogger(
-  prefix: string,
-  defaultLevel: LogLevel = 'info',
-): Logger {
+export function createLogger(prefix: string, defaultLevel: LogLevel = 'info'): Logger {
   prefix = `[${prefix}]`
 
-  function output(type: LogType, msg: string, level: boolean | LogLevel) {
+  function output(type: LogType, msg: string, level: boolean | LogLevel): void {
     level = isBoolean(level) ? (level ? defaultLevel : 'error') : level
     const thresh = logLevels[level]
     if (thresh >= logLevels[type]) {
       const method = type === 'info' || type === 'debug' ? 'log' : type
-      const tag
-        = type === 'debug'
+      const tag =
+        type === 'debug'
           ? ansis.magenta.bold(prefix)
           : type === 'info'
             ? ansis.cyan.bold(prefix)
             : type === 'warn'
               ? ansis.yellow.bold(prefix)
               : ansis.red.bold(prefix)
-      const format = `${ansis.dim(
-        new Date().toLocaleTimeString(),
-      )} ${tag} ${msg}`
+      const format = `${ansis.dim(new Date().toLocaleTimeString())} ${tag} ${msg}`
 
-      // eslint-disable-next-line no-console
       console[method](format)
     }
   }

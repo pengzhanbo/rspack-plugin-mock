@@ -2,7 +2,8 @@ import { objectKeys, uniq } from '@pengzhanbo/utils'
 import { loadPackageJSONSync } from 'local-pkg'
 
 export function getPackageDeps(cwd?: string): Record<string, string> {
-  const { dependencies, devDependencies, peerDependencies, optionalDependencies } = loadPackageJSONSync(cwd) || {}
+  const { dependencies, devDependencies, peerDependencies, optionalDependencies } =
+    loadPackageJSONSync(cwd) ?? {}
   const deps = { ...dependencies, ...devDependencies, ...peerDependencies, ...optionalDependencies }
   return deps
 }

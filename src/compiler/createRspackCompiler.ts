@@ -1,10 +1,9 @@
 import type { Compiler, RspackOptions, RspackPluginInstance } from '@rspack/core'
-import { createRequire } from 'node:module'
-import { isBuiltin } from 'node:module'
+import { createRequire, isBuiltin } from 'node:module'
 import process from 'node:process'
 import * as rspackCore from '@rspack/core'
 import ansis from 'ansis'
-import { getPackageDepList, vfs } from '../utils'
+import { getPackageDepList, vfs } from '../utils/index.js'
 
 const require = createRequire(import.meta.url)
 
@@ -19,24 +18,23 @@ export interface CompilerOptions {
 
 export function createCompiler(
   options: CompilerOptions,
-  callback: (result: { code: string, externals: string[] }) => Promise<void> | void,
+  callback: (result: { code: string; externals: string[] }) => Promise<void> | void,
 ): Compiler | null {
   const rspackOptions = resolveRspackOptions(options)
   const isWatch = rspackOptions.watch === true
 
-  async function handler(err: Error | null, stats?: rspackCore.Stats) {
-    const name = '[rspack:mock]'
-    const logError = (...args: any[]) => {
+  async function handler(err: Error | null, stats?: rspackCore.Stats): Promise<void> {
+    const id = '[rspack:mock]'
+    const logError = (...args: any[]): void => {
       if (stats) {
-        stats.compilation.getLogger(name).error(...args)
-      }
-      else {
-        console.error(ansis.red(name), ...args)
+        stats.compilation.getLogger(id).error(...args)
+      } else {
+        console.error(ansis.red(id), ...args)
       }
     }
 
     if (err) {
-      logError(err.stack || err)
+      logError(err.stack ?? err)
       if ('details' in err) {
         logError(err.details)
       }
@@ -51,13 +49,14 @@ export function createCompiler(
     const externals: string[] = []
 
     if (!isWatch) {
-      const modules = stats?.toJson().modules || []
-      const aliasList = Object.keys(options.alias || {}).map(key => key.replace(/\$$/g, ''))
+      const modules = stats?.toJson().modules ?? []
+      const aliasList = Object.keys(options.alias ?? {}).map((key) => key.replace(/\$$/g, ''))
       for (const { name } of modules) {
         if (name?.startsWith('external')) {
           const packageName = normalizePackageName(name)
-          if (!isBuiltin(packageName) && !aliasList.includes(packageName))
+          if (!isBuiltin(packageName) && !aliasList.includes(packageName)) {
             externals.push(normalizePackageName(name))
+          }
         }
       }
     }
@@ -74,14 +73,15 @@ export function createCompiler(
       await handler(...args)
       compiler.close(() => {})
     })
-  }
-  else {
+  } else {
     compiler.watch({}, handler)
   }
   return compiler
 }
 
-export function transformWithRspack(options: Omit<CompilerOptions, 'watch'>): Promise<{ code: string, externals: string[] }> {
+export function transformWithRspack(
+  options: Omit<CompilerOptions, 'watch'>,
+): Promise<{ code: string; externals: string[] }> {
   return new Promise((resolve) => {
     createCompiler({ ...options, watch: false }, (result) => {
       resolve(result)

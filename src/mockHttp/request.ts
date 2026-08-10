@@ -1,13 +1,13 @@
 import type http from 'node:http'
 import type { MatchFunction } from 'path-to-regexp'
-import type { Logger } from '../core'
-import type { BodyParserOptions, ExtraRequest, MockRequest } from '../types'
+import type { Logger } from '../core/index.js'
+import type { BodyParserOptions, ExtraRequest, MockRequest } from '../types/index.js'
 import { isEmptyObject } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import bodyParser from 'co-body'
 import formidable from 'formidable'
 import { match } from 'path-to-regexp'
-import { isObjectSubset } from '../utils'
+import { isObjectSubset } from '../utils/index.js'
 
 /**
  * Parse request body
@@ -27,36 +27,37 @@ export async function parseRequestBody(
   bodyParserOptions: BodyParserOptions = {},
 ): Promise<any> {
   const method = req.method!.toUpperCase()
-  if (['HEAD', 'OPTIONS'].includes(method))
+  if (['HEAD', 'OPTIONS'].includes(method)) {
     return undefined
-  const type = req.headers['content-type']?.toLocaleLowerCase() || ''
+  }
+  const type = req.headers['content-type']?.toLocaleLowerCase() ?? ''
   const { limit, formLimit, jsonLimit, textLimit, ...rest } = bodyParserOptions
   try {
     if (type.startsWith('application/json')) {
       return await bodyParser.json(req, {
-        limit: jsonLimit || limit,
+        limit: jsonLimit ?? limit,
         ...rest,
       })
     }
 
     if (type.startsWith('application/x-www-form-urlencoded')) {
       return await bodyParser.form(req, {
-        limit: formLimit || limit,
+        limit: formLimit ?? limit,
         ...rest,
       })
     }
 
     if (type.startsWith('text/plain')) {
       return await bodyParser.text(req, {
-        limit: textLimit || limit,
+        limit: textLimit ?? limit,
         ...rest,
       })
     }
 
-    if (type.startsWith('multipart/form-data'))
+    if (type.startsWith('multipart/form-data')) {
       return await parseRequestBodyWithMultipart(req, formidableOptions)
-  }
-  catch (e) {
+    }
+  } catch (e) {
     logger.error(e)
   }
   return undefined
@@ -70,7 +71,7 @@ export async function parseRequestBody(
 const DEFAULT_FORMIDABLE_OPTIONS: formidable.Options = {
   keepExtensions: true,
   filename(name, ext, part) {
-    return part?.originalFilename || `${name}.${Date.now()}${ext ? `.${ext}` : ''}`
+    return part?.originalFilename ?? `${name}.${Date.now()}${ext ? `.${ext}` : ''}`
   },
 }
 
@@ -92,7 +93,7 @@ async function parseRequestBodyWithMultipart(
   return new Promise((resolve, reject) => {
     form.parse(req, (error, fields, files) => {
       if (error) {
-        reject(error)
+        reject(error as Error)
         return
       }
       resolve({ ...fields, ...files })
@@ -105,7 +106,10 @@ async function parseRequestBodyWithMultipart(
  *
  * path-to-regexp 匹配函数缓存
  */
-const matcherCache: Map<string, MatchFunction<Partial<Record<string, string | string[]>>>> = new Map()
+const matcherCache: Map<
+  string,
+  MatchFunction<Partial<Record<string, string | string[]>>>
+> = new Map()
 
 /**
  * Parse request URL dynamic parameters
@@ -138,16 +142,13 @@ export function parseRequestParams(
  * @param validator - Validator object / 验证器对象
  * @returns Whether the request is valid / 请求是否有效
  */
-export function requestValidate(
-  request: ExtraRequest,
-  validator: Partial<ExtraRequest>,
-): boolean {
+export function requestValidate(request: ExtraRequest, validator: Partial<ExtraRequest>): boolean {
   return (
-    isObjectSubset(request.headers, validator.headers)
-    && isObjectSubset(request.body, validator.body)
-    && isObjectSubset(request.params, validator.params)
-    && isObjectSubset(request.query, validator.query)
-    && isObjectSubset(request.refererQuery, validator.refererQuery)
+    isObjectSubset(request.headers, validator.headers) &&
+    isObjectSubset(request.body, validator.body) &&
+    isObjectSubset(request.params, validator.params) &&
+    isObjectSubset(request.query, validator.query) &&
+    isObjectSubset(request.refererQuery, validator.refererQuery)
   )
 }
 
@@ -160,10 +161,8 @@ export function requestValidate(
  * @param data - Data to format / 要格式化的数据
  * @returns Formatted log string / 格式化后的日志字符串
  */
-function formatLog(prefix: string, data: any) {
-  return !data || isEmptyObject(data)
-    ? ''
-    : `  ${ansis.gray(`${prefix}:`)}${JSON.stringify(data)}`
+function formatLog(prefix: string, data: any): string {
+  return !data || isEmptyObject(data) ? '' : `  ${ansis.gray(`${prefix}:`)}${JSON.stringify(data)}`
 }
 
 /**
@@ -176,7 +175,11 @@ function formatLog(prefix: string, data: any) {
  * @param shouldSimulateError - Whether to simulate error / 是否模拟错误
  * @returns Formatted log string / 格式化后的日志字符串
  */
-export function requestLog(request: MockRequest, filepath: string, shouldSimulateError?: boolean): string {
+export function requestLog(
+  request: MockRequest,
+  filepath: string,
+  shouldSimulateError?: boolean,
+): string {
   const { url, method, query, params, body } = request
   let { pathname } = new URL(url!, 'http://example.com')
   pathname = ansis.green(decodeURIComponent(pathname))

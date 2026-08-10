@@ -1,7 +1,9 @@
+// oxlint-disable max-lines-per-function
+
 import type { CorsOptions } from 'cors'
 import type * as http from 'node:http'
-import type { MockCompiler } from '../compiler/mockCompiler'
-import type { Logger, ResolvePluginOptions } from '../core'
+import type { MockCompiler } from '../compiler/mockCompiler.js'
+import type { Logger, ResolvePluginOptions } from '../core/index.js'
 import type {
   ExtraRequest,
   MockHttpItem,
@@ -9,7 +11,7 @@ import type {
   MockResponse,
   NextHandleFunction,
   PathFilter,
-} from '../types'
+} from '../types/index.js'
 import {
   attemptAsync,
   isFunction,
@@ -21,22 +23,31 @@ import {
 } from '@pengzhanbo/utils'
 import ansis from 'ansis'
 import Cookies from 'cookies'
-import { recordRequestWithRawReq, replayRecordedRequest } from '../recorder'
-import { createMatcher, doesProxyContextMatchUrl, urlParse } from '../utils'
-import { createCors } from './cors'
-import { findMockData } from './matcher'
-import { matchingWeight } from './matchingWeight'
-import { parseRequestBody, parseRequestParams, requestLog } from './request'
-import { collectRequest } from './requestRecovery'
+import { recordRequestWithRawReq, replayRecordedRequest } from '../recorder/index.js'
+import { createMatcher, doesProxyContextMatchUrl, urlParse } from '../utils/index.js'
+import { createCors } from './cors.js'
+import { findMockData } from './matcher.js'
+import { matchingWeight } from './matchingWeight.js'
+import { parseRequestBody, parseRequestParams, requestLog } from './request.js'
+import { collectRequest } from './requestRecovery.js'
 import {
   provideResponseCookies,
   provideResponseHeaders,
   provideResponseStatus,
   responseRealDelay,
   sendResponseData,
-} from './response'
+} from './response.js'
 
-export interface CreateMockMiddlewareOptions extends Pick<ResolvePluginOptions, 'formidableOptions' | 'cookiesOptions' | 'bodyParserOptions' | 'priority' | 'record' | 'replay' | 'activeScene'> {
+export interface CreateMockMiddlewareOptions extends Pick<
+  ResolvePluginOptions,
+  | 'formidableOptions'
+  | 'cookiesOptions'
+  | 'bodyParserOptions'
+  | 'priority'
+  | 'record'
+  | 'replay'
+  | 'activeScene'
+> {
   proxies: PathFilter[]
   logger: Logger
   cors: false | CorsOptions
@@ -81,12 +92,12 @@ export function createMockMiddleware(
 
   const [globFilter, contextFilter] = partition(
     proxies,
-    item => isString(item) && item.includes('*'),
+    (item) => isString(item) && item.includes('*'),
   ) as [string[], (string | ((pathname: string, req: http.IncomingMessage) => boolean))[]]
 
   const { isMatch: isGlobProxiesMatch } = createMatcher(globFilter, [], false)
 
-  return async function (req, res, next) {
+  return async function middleware(req, res, next) {
     const startTime = timestamp()
     const { query, pathname } = urlParse(req.url!)
 
@@ -96,12 +107,17 @@ export function createMockMiddleware(
     }
 
     // 旧的匹配规则，前缀匹配
-    if (contextFilter.length && !contextFilter.some(context => doesProxyContextMatchUrl(context, req)))
+    if (
+      contextFilter.length &&
+      !contextFilter.some((context) => doesProxyContextMatchUrl(context, req))
+    ) {
       return next()
+    }
 
     // 新的匹配规则，glob匹配
-    if (globFilter.length && !isGlobProxiesMatch(pathname))
+    if (globFilter.length && !isGlobProxiesMatch(pathname)) {
       return next()
+    }
 
     const mockData = compiler.mockData
     // 对满足匹配规则的配置进行优先级排序
@@ -124,7 +140,7 @@ export function createMockMiddleware(
     const method = req.method!.toUpperCase()
     const extraReq: Omit<ExtraRequest, 'params'> = {
       query,
-      refererQuery: urlParse(req.headers.referer || '').query,
+      refererQuery: urlParse(req.headers.referer ?? '').query,
       body: await parseRequestBody(req, logger, formidableOptions, bodyParserOptions),
       headers: req.headers,
       getCookie: cookies.get.bind(cookies),
@@ -134,12 +150,20 @@ export function createMockMiddleware(
     // X-Mock-Scene 头部覆盖配置
     const headerScene = req.headers['x-mock-scene']
     const effectiveScene: string[] = headerScene
-      ? toArray(headerScene).map(item => item.split(',').map(s => s.trim())).flat().filter(Boolean)
+      ? toArray(headerScene)
+          .map((item) => item.split(',').map((s) => s.trim()))
+          .flat()
+          .filter(Boolean)
       : activeScene
 
     // 查找匹配的mock，仅找出首个匹配的配置项后立即结束
     for (const mockUrl of mockUrls) {
-      mock = findMockData(mockData[mockUrl], logger, { pathname, method, request: extraReq, activeScene: effectiveScene })
+      mock = findMockData(mockData[mockUrl], logger, {
+        pathname,
+        method,
+        request: extraReq,
+        activeScene: effectiveScene,
+      })
       if (mock) {
         _mockUrl = mockUrl
         break
@@ -155,9 +179,10 @@ export function createMockMiddleware(
       // 请求体录制时，需要记录请求体，以便后续回放时使用
       record.enabled && recordRequestWithRawReq(req, pathname, extraReq.body)
       const matched = mockUrls
-        .map(m => m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m))
+        .map((m) => (m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m)))
         .join(', ')
-      matched.length && logger.warn(`${ansis.green(pathname)} matches ${matched}, but mock data is not found.`)
+      matched.length &&
+        logger.warn(`${ansis.green(pathname)} matches ${matched}, but mock data is not found.`)
 
       return next()
     }
@@ -208,7 +233,7 @@ export function createMockMiddleware(
     logger.info(requestLog(request, filepath, shouldSimulateError), logLevel)
     logger.debug(
       `${ansis.magenta('DEBUG')} ${ansis.underline(pathname)} matches: [ ${mockUrls
-        .map(m => m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m))
+        .map((m) => (m === _mockUrl ? ansis.underline.bold(m) : ansis.dim(m)))
         .join(', ')} ]\n`,
     )
 

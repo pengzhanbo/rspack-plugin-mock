@@ -1,4 +1,4 @@
-import type { MockHttpItem, MockOptions, MockWebsocketItem } from '../types'
+import type { MockHttpItem, MockOptions, MockWebsocketItem } from '../types/index.js'
 import {
   isArray,
   isEmptyObject,
@@ -8,38 +8,36 @@ import {
   sortBy,
   toArray,
 } from '@pengzhanbo/utils'
-import { isObjectSubset, urlParse } from '../utils'
+import { isObjectSubset, urlParse } from '../utils/index.js'
 
 export function processRawData(
   rawData: (readonly [any, string])[],
 ): (MockHttpItem | MockWebsocketItem | MockOptions)[] {
-  return rawData.filter(item => item[0]).map(([raw, __filepath__]) => {
-    let mockConfig
-    if (raw.default) {
-      if (isArray(raw.default)) {
-        mockConfig = raw.default.map((item: any) => ({ ...item, __filepath__ }))
-      }
-      else {
-        mockConfig = { ...raw.default, __filepath__ }
-      }
-    }
-    else if ('url' in raw) {
-      mockConfig = { ...raw, __filepath__ }
-    }
-    else {
-      mockConfig = []
-      objectKeys(raw || {}).forEach((key) => {
-        const data = raw[key]
-        if (isArray(data)) {
-          mockConfig.push(...data.map(item => ({ ...(item as any), __filepath__ })))
+  return rawData
+    .filter((item) => item[0])
+    .map(([raw, __filepath__]) => {
+      let mockConfig
+      if (raw.default) {
+        if (isArray(raw.default)) {
+          mockConfig = raw.default.map((item: any) => ({ ...item, __filepath__ }))
+        } else {
+          mockConfig = { ...raw.default, __filepath__ }
         }
-        else {
-          mockConfig.push({ ...data, __filepath__ })
-        }
-      })
-    }
-    return mockConfig
-  })
+      } else if ('url' in raw) {
+        mockConfig = { ...raw, __filepath__ }
+      } else {
+        mockConfig = []
+        objectKeys(raw ?? {}).forEach((key) => {
+          const data = raw[key]
+          if (isArray(data)) {
+            mockConfig.push(...data.map((item) => ({ ...(item as any), __filepath__ })))
+          } else {
+            mockConfig.push({ ...data, __filepath__ })
+          }
+        })
+      }
+      return mockConfig
+    })
 }
 
 export function processMockData(
@@ -47,39 +45,38 @@ export function processMockData(
 ): Record<string, MockOptions> {
   const list: MockOptions = []
   for (const [, handle] of mockList.entries()) {
-    if (handle)
+    if (handle) {
       list.push(...toArray(handle))
+    }
   }
 
   const mocks: Record<string, MockOptions> = {}
 
   list
-    .filter(mock => isPlainObject(mock) && mock.enabled !== false && mock.url)
+    .filter((mock) => isPlainObject(mock) && mock.enabled !== false && mock.url)
     .forEach((mock) => {
       const { pathname, query } = urlParse(mock.url)
-      const list = (mocks[pathname!] ??= [])
+      const items = (mocks[pathname] ??= [])
 
-      const current = { ...mock, url: pathname! }
+      const current = { ...mock, url: pathname }
       if (current.ws !== true) {
         const validator = current.validator
         if (!isEmptyObject(query)) {
           if (isFunction(validator)) {
-            current.validator = function (request) {
+            current.validator = function validate(request) {
               return isObjectSubset(request.query, query) && validator(request)
             }
-          }
-          else if (validator) {
+          } else if (validator) {
             current.validator = { ...validator }
             current.validator.query = current.validator.query
               ? { ...query, ...current.validator.query }
               : query
-          }
-          else {
+          } else {
             current.validator = { query }
           }
         }
       }
-      list.push(current)
+      items.push(current)
     })
 
   objectKeys(mocks).forEach((key) => {
@@ -90,14 +87,17 @@ export function processMockData(
 
 export function sortByValidator(mocks: MockOptions): (MockHttpItem | MockWebsocketItem)[] {
   return sortBy(mocks, (item) => {
-    if (item.ws === true)
+    if (item.ws === true) {
       return 0
+    }
     const { validator } = item
     // fix: #28
-    if (!validator || isEmptyObject(validator))
+    if (!validator || isEmptyObject(validator)) {
       return 2
-    if (isFunction(validator))
+    }
+    if (isFunction(validator)) {
       return 0
+    }
     const count = Object.keys(validator).reduce(
       (prev, key) => prev + keysCount(validator[key as keyof typeof validator]),
       0,
@@ -107,7 +107,8 @@ export function sortByValidator(mocks: MockOptions): (MockHttpItem | MockWebsock
 }
 
 function keysCount(obj?: object): number {
-  if (!obj)
+  if (!obj) {
     return 0
+  }
   return objectKeys(obj).length
 }

@@ -1,19 +1,19 @@
 import type { Compiler, DevServer, RspackPluginInstance } from '@rspack/core'
 import type { Server } from 'node:http'
-import type { MockCompiler } from '../compiler'
-import type { MockServerPluginOptions } from '../types'
-import type { ResolvePluginOptions } from './options'
+import type { MockCompiler } from '../compiler/index.js'
+import type { MockServerPluginOptions } from '../types/index.js'
+import type { ResolvePluginOptions } from './options.js'
 import path from 'node:path'
 import process from 'node:process'
 import { isFunction, isString, toArray, toTruthy } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
-import { buildMockServer } from '../build'
-import { createMockCompiler } from '../compiler'
-import { createMockMiddleware, rewriteRequest } from '../mockHttp'
-import { mockWebSocket } from '../mockWebsocket'
-import { Recorder } from '../recorder'
-import { waitingFor } from '../utils'
-import { resolvePluginOptions as resolvePluginOptionsRaw } from './options'
+import { buildMockServer } from '../build/index.js'
+import { createMockCompiler } from '../compiler/index.js'
+import { createMockMiddleware, rewriteRequest } from '../mockHttp/index.js'
+import { mockWebSocket } from '../mockWebsocket/index.js'
+import { Recorder } from '../recorder/index.js'
+import { waitingFor } from '../utils/index.js'
+import { resolvePluginOptions as resolvePluginOptionsRaw } from './options.js'
 
 const PLUGIN_NAME = 'rspack-plugin-mock'
 
@@ -22,8 +22,9 @@ export class MockServerPlugin implements RspackPluginInstance {
 
   apply(compiler: Compiler): void {
     // 禁用 mock 服务
-    if (this.options.enabled === false)
+    if (this.options.enabled === false) {
       return
+    }
 
     const compilerOptions = compiler.options
     const options = this.resolvePluginOptions(compiler, this.options)
@@ -31,18 +32,18 @@ export class MockServerPlugin implements RspackPluginInstance {
 
     // 构建 mock 服务
     if (isProd && options.build !== false) {
-      compiler.hooks.afterEmit.tap(
-        PLUGIN_NAME,
-        () => buildMockServer(
+      compiler.hooks.afterEmit.tap(PLUGIN_NAME, () =>
+        buildMockServer(
           options,
-          compilerOptions.output.path || path.resolve(process.cwd(), 'dist'),
+          compilerOptions.output.path ?? path.resolve(process.cwd(), 'dist'),
         ),
       )
     }
 
     // 生产环境下，无需开启 mock 服务
-    if (isProd)
+    if (isProd) {
       return
+    }
 
     // 明确禁用 devServer 时，无需开启 mock 服务
     if (compilerOptions.devServer === false) {
@@ -50,45 +51,52 @@ export class MockServerPlugin implements RspackPluginInstance {
       return
     }
 
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
     const devServer = (compilerOptions.devServer ||= {})
     const mockCompiler = createMockCompiler(options)
 
     this.provideMiddleware(mockCompiler, devServer, options)
-    this.provideProxyConfig(options, devServer!)
+    this.provideProxyConfig(options, devServer)
 
     compiler.hooks.watchRun.tap(PLUGIN_NAME, () => mockCompiler.run())
     compiler.hooks.watchClose.tap(PLUGIN_NAME, () => mockCompiler.close())
   }
 
-  provideMiddleware(mockCompiler: MockCompiler, devServer: DevServer, options: ResolvePluginOptions): void {
+  provideMiddleware(
+    mockCompiler: MockCompiler,
+    devServer: DevServer,
+    options: ResolvePluginOptions,
+  ): void {
     const setupMiddlewares = devServer.setupMiddlewares
     const waitServerForMockWebSocket = waitingFor<Server>((server) => {
       mockWebSocket(mockCompiler, server, options)
     })
 
     // 注入 mock 中间件
-    devServer.setupMiddlewares = function (middlewares, devServer) {
-      middlewares = setupMiddlewares?.(middlewares, devServer) || middlewares
+    devServer.setupMiddlewares = function setup(middlewares, server) {
+      middlewares = setupMiddlewares?.(middlewares, server) ?? middlewares
       middlewares.unshift(createMockMiddleware(mockCompiler, options))
       // 开启热更新时，mock 更新后通知页面刷新
       if (options.reload) {
         mockCompiler.on('update', () => {
-          if (devServer.webSocketServer?.clients)
-            devServer.sendMessage(devServer.webSocketServer.clients, 'static-changed')
+          if (server.webSocketServer?.clients) {
+            server.sendMessage(server.webSocketServer.clients, 'static-changed')
+          }
         })
       }
       /**
        * 在 @rspack/dev-server 中, setupMiddlewares 优先于 createServer
        * 执行，需要等待 server 启动后再注入 mock websocket
        */
-      waitServerForMockWebSocket(() => devServer.server)
+      waitServerForMockWebSocket(() => server.server)
       return middlewares
     }
   }
 
   provideProxyConfig(options: ResolvePluginOptions, devServer: DevServer): void {
-    if (!devServer.proxy?.length)
+    if (!devServer.proxy?.length) {
       return
+    }
 
     const wsPrefix = toArray(options.wsPrefix)
 
@@ -103,7 +111,9 @@ export class MockServerPlugin implements RspackPluginInstance {
       // 排除 proxy 中的 与 wsPrefix 相关的 ws 代理配置，避免 request upgrade 冲突
       .filter((item) => {
         if (!isFunction(item) && item.ws === true && wsPrefix.length) {
-          return !toArray(item.pathFilter || item.context).filter(isString).some(context => wsPrefix.includes(context))
+          return !toArray(item.pathFilter ?? item.context)
+            .filter(isString)
+            .some((context) => wsPrefix.includes(context))
         }
         return true
       })
@@ -111,7 +121,7 @@ export class MockServerPlugin implements RspackPluginInstance {
         if (!isFunction(item) && !item.ws) {
           const plugins = (item.plugins ??= [])
           // 恢复代理请求数据流
-          plugins.push(proxyServer => proxyServer.on('proxyReq', rewriteRequest))
+          plugins.push((proxyServer) => proxyServer.on('proxyReq', rewriteRequest))
           // 记录请求
           if (options.record.enabled && recorder) {
             plugins.push(recorder.getPlugin())
@@ -121,21 +131,28 @@ export class MockServerPlugin implements RspackPluginInstance {
       })
   }
 
-  resolvePluginOptions(compiler: Compiler, options: MockServerPluginOptions = {}): ResolvePluginOptions {
+  resolvePluginOptions(
+    compiler: Compiler,
+    options: MockServerPluginOptions = {},
+  ): ResolvePluginOptions {
     const compilerOptions = compiler.options
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
     const alias = compilerOptions.resolve?.alias || {}
     const context = compilerOptions.context
 
     const definePluginInstance = compilerOptions.plugins?.find(
-      plugin => plugin instanceof rspack.DefinePlugin,
+      (plugin) => plugin instanceof rspack.DefinePlugin,
     )
+    // oxlint-disable-next-line typescript/prefer-nullish-coalescing
     const devServer = compilerOptions.devServer || {}
-    const proxies = (devServer.proxy || []).flatMap((item) => {
-      if (!isFunction(item) && !item.ws) {
-        return item.pathFilter || item.context
-      }
-      return []
-    }).filter(toTruthy)
+    const proxies = (devServer.proxy ?? [])
+      .flatMap((item) => {
+        if (!isFunction(item) && !item.ws) {
+          return item.pathFilter ?? item.context
+        }
+        return []
+      })
+      .filter(toTruthy)
 
     return resolvePluginOptionsRaw(options, {
       alias,

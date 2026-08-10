@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
-import { normalizePath } from '../utils'
+import { normalizePath } from '../utils/index.js'
 
 export async function writeMockEntryFile(
   entryFile: string,

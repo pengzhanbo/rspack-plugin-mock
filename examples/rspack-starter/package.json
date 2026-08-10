@@ -1,8 +1,8 @@
 {
   "name": "rspack-starter",
-  "type": "module",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "cross-env NODE_ENV=development rspack serve",
     "build": "cross-env NODE_ENV=production rspack build"

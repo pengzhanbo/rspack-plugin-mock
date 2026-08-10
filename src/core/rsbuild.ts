@@ -1,15 +1,21 @@
-import type { ProxyOptions, RsbuildConfig, RsbuildDevServer, RsbuildPlugin, RsbuildServerBase } from '@rsbuild/core'
-import type { MockServerPluginOptions, PathFilter } from '../types'
+import type {
+  ProxyOptions,
+  RsbuildConfig,
+  RsbuildDevServer,
+  RsbuildPlugin,
+  RsbuildServerBase,
+} from '@rsbuild/core'
+import type { MockServerPluginOptions, PathFilter } from '../types/index.js'
 import path from 'node:path'
 import process from 'node:process'
 import { isArray, objectEntries, toArray } from '@pengzhanbo/utils'
 import rspack from '@rspack/core'
-import { buildMockServer } from '../build'
-import { createMockCompiler } from '../compiler'
-import { createMockMiddleware, rewriteRequest } from '../mockHttp'
-import { mockWebSocket } from '../mockWebsocket'
-import { Recorder } from '../recorder'
-import { resolvePluginOptions } from './options'
+import { buildMockServer } from '../build/index.js'
+import { createMockCompiler } from '../compiler/index.js'
+import { createMockMiddleware, rewriteRequest } from '../mockHttp/index.js'
+import { mockWebSocket } from '../mockWebsocket/index.js'
+import { Recorder } from '../recorder/index.js'
+import { resolvePluginOptions } from './options.js'
 
 export function pluginMockServer(options: MockServerPluginOptions = {}): RsbuildPlugin {
   return {
@@ -17,15 +23,16 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
 
     setup(api) {
       // 禁用 mock 服务
-      if (options.enabled === false)
+      if (options.enabled === false) {
         return
+      }
 
       const rsbuildConfig = api.getRsbuildConfig()
       const resolvedOptions = resolvePluginOptions(options, {
         proxies: resolveConfigProxies(rsbuildConfig),
         alias: {},
         context: api.context.rootPath,
-        plugins: [new rspack.DefinePlugin(rsbuildConfig.source?.define || {})],
+        plugins: [new rspack.DefinePlugin(rsbuildConfig.source?.define ?? {})],
       })
 
       // 在构建生产包时，额外输出一个可部署的 mock 服务
@@ -48,12 +55,11 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
       // 合并 alias
       api.onAfterCreateCompiler(({ compiler }) => {
         if ('compilers' in compiler) {
-          compiler.compilers.forEach((compiler) => {
-            mockCompiler.updateAlias(compiler.options.resolve?.alias || {})
+          compiler.compilers.forEach((current) => {
+            mockCompiler.updateAlias(current.options.resolve?.alias ?? {})
           })
-        }
-        else {
-          mockCompiler.updateAlias(compiler.options.resolve?.alias || {})
+        } else {
+          mockCompiler.updateAlias(compiler.options.resolve?.alias ?? {})
         }
       })
 
@@ -62,46 +68,51 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
         recorder = new Recorder(resolvedOptions.record)
       }
 
-      function wrapProxyOptions(options: ProxyOptions): ProxyOptions {
-        const plugins = (options.plugins ??= [])
+      function wrapProxyOptions(opt: ProxyOptions): ProxyOptions {
+        const plugins = (opt.plugins ??= [])
         // 恢复代理请求数据流
-        plugins.push(proxyServer => proxyServer.on('proxyReq', rewriteRequest))
+        plugins.push((proxyServer) => proxyServer.on('proxyReq', rewriteRequest))
         // 记录请求
         if (resolvedOptions.record.enabled && recorder) {
           plugins.push(recorder.getPlugin())
         }
-        return options
+        return opt
       }
 
       api.modifyRsbuildConfig((config) => {
-        if (!config.server?.proxy)
+        if (!config.server?.proxy) {
           return
+        }
 
         if (isArray(config.server.proxy)) {
-          config.server.proxy = config.server.proxy.map(item => item.ws ? item : wrapProxyOptions(item))
-        }
-        else if (config.server.proxy) {
+          config.server.proxy = config.server.proxy.map((item) =>
+            item.ws ? item : wrapProxyOptions(item),
+          )
+        } else if (config.server.proxy) {
           const proxy = config.server.proxy
           Object.keys(proxy).forEach((key) => {
             const target = proxy[key]
-            const options = typeof target === 'string' ? { target } : target
-            if (options.ws)
+            const opt = typeof target === 'string' ? { target } : target
+            if (opt.ws) {
               return
-            proxy[key] = wrapProxyOptions(options)
+            }
+            proxy[key] = wrapProxyOptions(opt)
           })
         }
       })
 
-      function initMockServer(server: RsbuildServerBase | RsbuildDevServer) {
+      async function initMockServer(server: RsbuildServerBase | RsbuildDevServer): Promise<void> {
         server.middlewares.use(createMockMiddleware(mockCompiler, resolvedOptions))
-        if (resolvedOptions.reload && api.context.action === 'dev')
+        if (resolvedOptions.reload && api.context.action === 'dev') {
           mockCompiler.on('update', () => (server as RsbuildDevServer).sockWrite('static-changed'))
+        }
 
         const shouldMockWs = toArray(resolvedOptions.wsPrefix).length > 0
-        if (shouldMockWs)
+        if (shouldMockWs) {
           mockWebSocket(mockCompiler, server.httpServer, resolvedOptions)
+        }
 
-        mockCompiler.run()
+        await mockCompiler.run()
       }
 
       api.onBeforeStartDevServer(({ server }) => initMockServer(server))
@@ -113,7 +124,7 @@ export function pluginMockServer(options: MockServerPluginOptions = {}): Rsbuild
 
 function resolveConfigProxies(config: RsbuildConfig): PathFilter[] {
   config.server ??= {}
-  const proxy = (config.server!.proxy ??= {})
+  const proxy = (config.server.proxy ??= {})
   const proxies: PathFilter[] = []
 
   if (isArray(proxy)) {
@@ -122,11 +133,11 @@ function resolveConfigProxies(config: RsbuildConfig): PathFilter[] {
         proxies.push(...toArray(item.pathFilter))
       }
     }
-  }
-  else {
+  } else {
     objectEntries(proxy).forEach(([pathFilter, opt]) => {
-      if (typeof opt === 'string' || !opt.ws)
+      if (typeof opt === 'string' || !opt.ws) {
         proxies.push(pathFilter)
+      }
     })
   }
   return proxies

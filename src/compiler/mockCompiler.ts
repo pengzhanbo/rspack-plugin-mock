@@ -1,9 +1,9 @@
-import type { Compiler } from '@rspack/core'
+import type { Compiler, ResolveAlias } from '@rspack/core'
 import type { FSWatcher } from 'chokidar'
 import type { Matcher } from 'picomatch'
-import type { ResolvePluginOptions } from '../core/options'
-import type { MockOptions } from '../types'
-import type { CompilerOptions } from './createRspackCompiler'
+import type { ResolvePluginOptions } from '../core/options.js'
+import type { MockOptions } from '../types/index.js'
+import type { CompilerOptions } from './createRspackCompiler.js'
 import EventEmitter from 'node:events'
 import path from 'node:path'
 import process from 'node:process'
@@ -11,11 +11,11 @@ import { uniq } from '@pengzhanbo/utils'
 import chokidar from 'chokidar'
 import { loadPackageJSONSync } from 'local-pkg'
 import { glob } from 'tinyglobby'
-import { writeMockEntryFile } from '../build'
-import { createMatcher, normalizePath } from '../utils'
-import { createCompiler } from './createRspackCompiler'
-import { loadFromCode } from './loadFromCode'
-import { processMockData, processRawData } from './processData'
+import { writeMockEntryFile } from '../build/writeEntryFile.js'
+import { createMatcher, normalizePath } from '../utils/index.js'
+import { createCompiler } from './createRspackCompiler.js'
+import { loadFromCode } from './loadFromCode.js'
+import { processMockData, processRawData } from './processData.js'
 
 export function createMockCompiler(options: ResolvePluginOptions): MockCompiler {
   return new MockCompiler(options)
@@ -43,8 +43,7 @@ export class MockCompiler extends EventEmitter {
     try {
       const pkg = loadPackageJSONSync(this.cwd)
       this.isESM = pkg?.type === 'module'
-    }
-    catch {}
+    } catch {}
     this.entryFile = path.resolve(process.cwd(), 'node_modules/.cache/mock-server/mock-server.ts')
   }
 
@@ -56,8 +55,8 @@ export class MockCompiler extends EventEmitter {
     const { include, exclude } = this.options
     const { pattern, ignore, isMatch } = createMatcher(include, exclude)
     const files = await glob(pattern, { ignore, cwd: path.join(this.cwd, this.options.dir) })
-    this.deps = files.map(file => normalizePath(file))
-    this.updateMockEntry()
+    this.deps = files.map((file) => normalizePath(file))
+    await this.updateMockEntry()
     this.watchMockFiles(isMatch)
 
     const { plugins, alias } = this.options
@@ -79,21 +78,20 @@ export class MockCompiler extends EventEmitter {
           cwd: this.cwd,
         })
         this._mockData = processMockData(processRawData(result))
-        this.emit('update', this.watchInfo || {})
-      }
-      catch (e: any) {
-        this.options.logger.error(e.stack || e.message)
+        this.emit('update', this.watchInfo ?? {})
+      } catch (e: any) {
+        this.options.logger.error(e.stack ?? e.message)
       }
     })
   }
 
-  close(): void {
-    this.mockWatcher.close()
+  async close(): Promise<void> {
+    await this.mockWatcher.close()
     this.compiler?.close(() => {})
     this.emit('close')
   }
 
-  updateAlias(alias: Record<string, false | string | (string | false)[]>): void {
+  updateAlias(alias: ResolveAlias): void {
     this.options.alias = {
       ...this.options.alias,
       ...alias,
@@ -109,18 +107,19 @@ export class MockCompiler extends EventEmitter {
       ignoreInitial: true,
       cwd: this.cwd,
       ignored: (filepath, stats) => {
-        if (filepath.includes('node_modules'))
+        if (filepath.includes('node_modules')) {
           return true
+        }
         return !!stats?.isFile() && !isMatch(filepath)
       },
     }))
 
-    watcher.on('add', (filepath) => {
+    watcher.on('add', async (filepath) => {
       filepath = normalizePath(filepath)
       if (isMatch(filepath)) {
         this.watchInfo = { filepath, type: 'add' }
         this.deps = uniq([...this.deps, filepath])
-        this.updateMockEntry()
+        await this.updateMockEntry()
       }
     })
 
@@ -135,8 +134,8 @@ export class MockCompiler extends EventEmitter {
       filepath = normalizePath(filepath)
       if (isMatch(filepath)) {
         this.watchInfo = { filepath, type: 'unlink' }
-        this.deps = this.deps.filter(dep => dep !== filepath)
-        this.updateMockEntry()
+        this.deps = this.deps.filter((dep) => dep !== filepath)
+        await this.updateMockEntry()
       }
     })
   }

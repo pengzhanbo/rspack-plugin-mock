@@ -1,5 +1,5 @@
-import type { ResolvePluginOptions } from '../core/options'
-import type { ServerBuildOption } from '../types'
+import type { ResolvePluginOptions } from '../core/options.js'
+import type { ServerBuildOption } from '../types/index.js'
 import { toArray } from '@pengzhanbo/utils'
 
 export function generatorServerEntryCode({

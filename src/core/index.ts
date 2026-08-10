@@ -1,2 +1,2 @@
-export * from './logger'
-export * from './options'
+export * from './logger.js'
+export * from './options.js'

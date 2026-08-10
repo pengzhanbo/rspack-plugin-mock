@@ -1,6 +1,6 @@
-import { get, post } from './request'
+import { get, post } from './request.js'
 
-async function fileExtension() {
+async function fileExtension(): Promise<void> {
   await get('/api/json')
   await get('/api/json5')
   await get('/api/es-module-js')
@@ -9,60 +9,60 @@ async function fileExtension() {
   await get('/api/javascript')
 }
 
-async function allowMethod() {
+async function allowMethod(): Promise<void> {
   await get('/api/only-get-method')
   await post('/api/only-get-method')
   await get('/api/allow-get-and-post')
   await post('/api/allow-get-and-post')
 }
 
-async function apiDev() {
+async function apiDev(): Promise<void> {
   await get('/api-dev/list/get')
 }
 
-async function buffer() {
+async function buffer(): Promise<void> {
   await post('/api/buffer/buffer-type')
   await post('/api/buffer/buffer-body')
 }
 
-async function cookie() {
+async function cookie(): Promise<void> {
   await post('/api/login')
   await post('/api/check-login')
   await post('/api/logout')
   await post('/api/check-login')
 }
 
-async function delay() {
+async function delay(): Promise<void> {
   await get('/api/delay')
   await get('/api/delay-and-fail')
 }
 
-async function customHeader() {
+async function customHeader(): Promise<void> {
   await get('/api/custom-header')
   await get('/api/custom-header-fn')
 }
 
-async function customResponse() {
+async function customResponse(): Promise<void> {
   await get('/api/custom-response?a=1&b=2')
   await post('/api/custom-response-skip?skip=1', { skip: 1, aa: 222 })
   await get('/api/custom-response-skip')
 }
 
-async function dynamicMatchUrl() {
+async function dynamicMatchUrl(): Promise<void> {
   await get('/api/author/10001')
   await get('/api/author/10002')
   await get('/api/author/10003')
 }
 
-async function fail() {
+async function fail(): Promise<void> {
   await get('/api/fail')
 }
 
-async function mockjs() {
+async function mockjs(): Promise<void> {
   await get('/api/mockjs')
 }
 
-async function otherMock() {
+async function otherMock(): Promise<void> {
   await post('/api/post/list', { page: 1 })
   await post('/api/post/delete/1')
   await post('/api/post/list', { page: 1 })
@@ -70,30 +70,30 @@ async function otherMock() {
   await get('/api/user/mark2022')
 }
 
-async function validatorBody() {
+async function validatorBody(): Promise<void> {
   await post('/api/post-update', { shouldUpdate: true })
   await post('/api/post-update', { shouldUpdate: false })
 }
 
-async function validatorParams() {
+async function validatorParams(): Promise<void> {
   await get('/api/post/1001')
   await get('/api/post/1002')
   await get('/api/post/1003')
 }
 
-async function validatorQuery() {
+async function validatorQuery(): Promise<void> {
   await get('/api/post?id=1000')
   await get('/api/post?id=1001&other=1')
   await get('/api/post?id=1002')
   await get('/api/post?id=1003&other=1')
 }
 
-async function validatorRequest() {
+async function validatorRequest(): Promise<void> {
   await get('/api/validator-check-cookie')
   await post('/api/validator-body-include', { ids: [] })
 }
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   await fileExtension()
   await allowMethod()
   await apiDev()
@@ -113,7 +113,7 @@ async function bootstrap() {
   await delay()
 }
 
-function webSocketMock() {
+function webSocketMock(): void {
   const ws = new WebSocket('ws://localhost:3000/socket.io')
   ws.addEventListener(
     'open',
@@ -124,12 +124,13 @@ function webSocketMock() {
     { once: true },
   )
   setTimeout(() => {
-    if (ws.readyState === ws.OPEN)
+    if (ws.readyState === ws.OPEN) {
       ws.send(JSON.stringify({ type: 'message', payload: { a: 1 } }))
+    }
   }, 3000)
 }
 
-function eventSourceMock() {
+function eventSourceMock(): void {
   const es = new EventSource('/api/sse')
   es.addEventListener('count', (e) => {
     // eslint-disable-next-line no-console
@@ -142,6 +143,6 @@ function eventSourceMock() {
   })
 }
 
-bootstrap()
+void bootstrap()
 webSocketMock()
 eventSourceMock()

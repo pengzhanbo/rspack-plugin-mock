@@ -66,13 +66,9 @@ import { MockServerPlugin } from 'rspack-plugin-mock'
 export default {
   devServer: {
     // The plugin will read the `proxy` option from the `devServer`
-    proxy: [
-      { context: '/api', target: 'http://example.com' },
-    ],
+    proxy: [{ context: '/api', target: 'http://example.com' }],
   },
-  plugins: [
-    new MockServerPlugin(/* pluginOptions */),
-  ]
+  plugins: [new MockServerPlugin(/* pluginOptions */)],
 }
 ```
 
@@ -90,9 +86,7 @@ export default defineConfig({
       '/api': 'http://example.com',
     },
   },
-  plugins: [
-    pluginMockServer(/* pluginOptions */),
-  ],
+  plugins: [pluginMockServer(/* pluginOptions */)],
 })
 ```
 
@@ -107,7 +101,7 @@ import { defineMock } from 'rspack-plugin-mock/helper'
 
 export default defineMock({
   url: '/api/test',
-  body: { a: 1, b: 2 }
+  body: { a: 1, b: 2 },
 })
 ```
 
@@ -127,13 +121,9 @@ import { MockServerPlugin } from 'rspack-plugin-mock'
 export default {
   devServer: {
     // The plugin will read the `proxy` option from the `devServer`
-    proxy: [
-      { context: '/api', target: 'http://example.com' },
-    ],
+    proxy: [{ context: '/api', target: 'http://example.com' }],
   },
-  plugins: [
-    new MockServerPlugin(/* pluginOptions */),
-  ]
+  plugins: [new MockServerPlugin(/* pluginOptions */)],
 }
 ```
 
@@ -153,9 +143,7 @@ export default defineConfig({
       '/api': 'http://example.com',
     },
   },
-  plugins: [
-    pluginMockServer(/* pluginOptions */),
-  ],
+  plugins: [pluginMockServer(/* pluginOptions */)],
 })
 ```
 
@@ -170,7 +158,7 @@ import { defineMock } from 'rspack-plugin-mock/helper'
 
 export default defineMock({
   url: '/api/test',
-  body: { a: 1, b: 2 }
+  body: { a: 1, b: 2 },
 })
 ```
 
@@ -197,7 +185,7 @@ export default definePostMock({
 
 Create a `Server-sent events` write stream to support mocking `EventSource`.
 
-``` ts
+```ts
 import { createSSEStream, defineMock } from 'rspack-plugin-mock/helper'
 
 export default defineMock({
@@ -206,7 +194,7 @@ export default defineMock({
     const sse = createSSEStream(req, res)
     sse.write({ event: 'message', data: { message: 'hello world' } })
     sse.end()
-  }
+  },
 })
 ```
 
@@ -268,7 +256,7 @@ export default defineMock({
 ### exclude
 
 - **Type:** `string | string[]`
-- **Default:** `[]`  (relative to [`dir`](#dir))
+- **Default:** `[]` (relative to [`dir`](#dir))
 - **Details:**
 
   glob string matching mock excluded files. see [picomatch](https://github.com/micromatch/picomatch#globbing-features)
@@ -371,7 +359,7 @@ export default defineMock({
   Based on `proxy`, the plugin records request data proxied by `http-proxy`.
   After receiving a response, the plugin will record the request data and response data to the specified directory.
 
-  ```ts
+  ````ts
   interface RecordOptions {
     /**
      * Whether to enable the record feature
@@ -394,28 +382,30 @@ export default defineMock({
      * filter: { mode: 'path-to-regexp', include: '/api/:id' }
      * ```
      */
-    filter?: ((req: RecordedReq) => boolean) | {
-      /**
-       * Include the request links that need to be recorded
-       *
-       * String: Glob pattern or path-to-regexp pattern
-       * (Use the mode option to set the mode, default is glob)
-       */
-      include?: string | string[]
-      /**
-       * Exclude request links that do not need to be recorded
-       *
-       * String: Glob pattern or path-to-regexp pattern
-       * (Use the mode option to set the mode, default is glob)
-       */
-      exclude?: string | string[]
-      /**
-       * Matching mode for include/exclude patterns
-       * - 'glob': Glob pattern matching (default)
-       * - 'path-to-regexp': Path-to-regexp pattern matching
-       */
-      mode: 'glob' | 'path-to-regexp'
-    }
+    filter?:
+      | ((req: RecordedReq) => boolean)
+      | {
+          /**
+           * Include the request links that need to be recorded
+           *
+           * String: Glob pattern or path-to-regexp pattern
+           * (Use the mode option to set the mode, default is glob)
+           */
+          include?: string | string[]
+          /**
+           * Exclude request links that do not need to be recorded
+           *
+           * String: Glob pattern or path-to-regexp pattern
+           * (Use the mode option to set the mode, default is glob)
+           */
+          exclude?: string | string[]
+          /**
+           * Matching mode for include/exclude patterns
+           * - 'glob': Glob pattern matching (default)
+           * - 'path-to-regexp': Path-to-regexp pattern matching
+           */
+          mode: 'glob' | 'path-to-regexp'
+        }
 
     /**
      * Directory to store recorded data
@@ -452,7 +442,7 @@ export default defineMock({
      */
     gitignore?: boolean
   }
-  ```
+  ````
 
 ### replay
 
@@ -477,7 +467,7 @@ export default defineMock({
 import { defineMock } from 'rspack-plugin-mock/helper'
 export default defineMock({
   url: '/api/test',
-  body: { message: 'hello world' }
+  body: { message: 'hello world' },
 })
 ```
 
@@ -493,7 +483,7 @@ export default defineMock({
     wss.on('connection', (ws, req) => {
       console.log('connected')
     })
-  }
+  },
 })
 ```
 
@@ -591,7 +581,7 @@ export default defineMock({
 
 - **Details:**
 
-  Configure response body data content.  `body` takes precedence over `response`.
+  Configure response body data content. `body` takes precedence over `response`.
 
 ### options.response
 
@@ -742,13 +732,9 @@ type Request = http.IncomingMessage & {
 
 The original type of `response` is `http.ServerResponse<http.IncomingMessage>`. The plugin adds `setCookie(name, value)` method for configuration cookies on this basis.
 
-``` ts
+```ts
 type Response = http.ServerResponse<http.IncomingMessage> & {
-  setCookie: (
-    name: string,
-    value?: string | null,
-    option?: Cookies.SetOption,
-  ) => void
+  setCookie: (name: string, value?: string | null, option?: Cookies.SetOption) => void
 }
 ```
 
@@ -764,7 +750,7 @@ type defineMockData<T> = (
   initialData: T, // initial data
   options?: {
     persistOnHMR?: boolean // persist the data value on HMR
-  } // options
+  }, // options
 ) => [getter, setter] & { value: T }
 ```
 
@@ -790,16 +776,16 @@ import posts from './data'
 export default defineMock([
   {
     url: '/api/posts',
-    body: () => posts.value
+    body: () => posts.value,
   },
   {
     url: '/api/posts/delete/:id',
     body: (params) => {
       const id = params.id
-      posts.value = posts.value.filter(post => post.id !== id)
+      posts.value = posts.value.filter((post) => post.id !== id)
       return { success: true }
-    }
-  }
+    },
+  },
 ])
 ```
 
@@ -837,14 +823,14 @@ export default {
           // be effective only for certain requests.
           '/api/:a/:b/c': {
             rules: ['/api/a/:b/:c', '/api/a/b/:c'],
-            when: ['/api/a/b/c']
+            when: ['/api/a/b/c'],
           },
           // If no `when` is specified, it means that all requests matching the rules need to have their priorities adjusted. It can be abbreviated as `[key]: [...rules]`
           '/api/:a/b': ['/api/a/:b'],
-        }
-      }
-    })
-  ]
+        },
+      },
+    }),
+  ],
 }
 ```
 
@@ -864,7 +850,7 @@ See more examples： [example](/example/)
 <details>
 <summary>Match <code>/api/test</code>, And returns a response body content with empty data</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
 })
@@ -875,7 +861,7 @@ export default defineMock({
 <details>
 <summary>Match <code>/api/test</code> , And returns a static content data</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
   body: { a: 1 },
@@ -887,10 +873,10 @@ export default defineMock({
 <details>
 <summary>Only Support <code>GET</code> Method</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
-  method: 'GET'
+  method: 'GET',
 })
 ```
 
@@ -899,7 +885,7 @@ export default defineMock({
 <details>
 <summary>In the response header, add a custom header and cookie</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
   headers: { 'X-Custom': '12345678' },
@@ -907,7 +893,7 @@ export default defineMock({
 })
 ```
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
   headers({ query, body, params, headers }) {
@@ -915,7 +901,7 @@ export default defineMock({
   },
   cookies() {
     return { 'my-cookie': '123456789' }
-  }
+  },
 })
 ```
 
@@ -924,7 +910,7 @@ export default defineMock({
 <details>
 <summary>Define multiple mock requests for the same URL and match valid rules with validators</summary>
 
-``` ts
+```ts
 export default defineMock([
   // Match /api/test?a=1
   {
@@ -945,15 +931,15 @@ export default defineMock([
   {
     // `?a=3` will resolve to `validator.query`
     url: '/api/test?a=3',
-    body: { message: 'query.a == 3' }
+    body: { message: 'query.a == 3' },
   },
   // Hitting the POST /api/test request, and in the request body,
   // field a is an array that contains items with values of 1 and 2.
   {
     url: '/api/test',
     method: ['POST'],
-    validator: { body: { a: [1, 2] } }
-  }
+    validator: { body: { a: [1, 2] } },
+  },
 ])
 ```
 
@@ -962,7 +948,7 @@ export default defineMock([
 <details>
 <summary>Response Delay</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
   delay: 6000, // delay 6 seconds
@@ -974,11 +960,11 @@ export default defineMock({
 <details>
 <summary>The interface request failed</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
   status: 502,
-  statusText: 'Bad Gateway'
+  statusText: 'Bad Gateway',
 })
 ```
 
@@ -987,12 +973,12 @@ export default defineMock({
 <details>
 <summary>Dynamic route matching</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/user/:userId',
   body({ params }) {
     return { userId: params.userId }
-  }
+  },
 })
 ```
 
@@ -1011,18 +997,18 @@ import { Buffer } from 'node:buffer'
 // the content-type is still json.
 export default defineMock({
   url: 'api/buffer',
-  body: Buffer.from(JSON.stringify({ a: 1 }))
+  body: Buffer.from(JSON.stringify({ a: 1 })),
 })
 ```
 
-``` ts
+```ts
 // When the type is buffer, the content-type is application/octet-stream.
 // The data passed in through body will be converted to a buffer.
 export default defineMock({
   url: 'api/buffer',
   type: 'buffer',
   // Convert using Buffer.from(body) for internal use
-  body: { a: 1 }
+  body: { a: 1 },
 })
 ```
 
@@ -1033,14 +1019,14 @@ export default defineMock({
 
 Simulate file download, and pass in the file reading stream.
 
-``` ts
+```ts
 import { createReadStream } from 'node:fs'
 
 export default defineMock({
   url: '/api/download',
   // When you are unsure of the type, you can pass in the file name for internal parsing by the plugin.
   type: 'my-app.dmg',
-  body: () => createReadStream('./my-app.dmg')
+  body: () => createReadStream('./my-app.dmg'),
 })
 ```
 
@@ -1053,16 +1039,18 @@ export default defineMock({
 <details>
 <summary>Use <code>mockjs</code></summary>
 
-``` ts
+```ts
 import Mock from 'mockjs'
 
 export default defineMock({
   url: '/api/test',
   body: Mock.mock({
-    'list|1-10': [{
-      'id|+1': 1
-    }]
-  })
+    'list|1-10': [
+      {
+        'id|+1': 1,
+      },
+    ],
+  }),
 })
 ```
 
@@ -1074,7 +1062,7 @@ You need install `mockjs`
 
 <summary>Use <code>response</code> to customize the response</summary>
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/test',
   response(req, res, next) {
@@ -1083,12 +1071,14 @@ export default defineMock({
 
     res.status = 200
     res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify({
-      query,
-      body,
-      params,
-    }))
-  }
+    res.end(
+      JSON.stringify({
+        query,
+        body,
+        params,
+      }),
+    )
+  },
 })
 ```
 
@@ -1097,7 +1087,7 @@ export default defineMock({
 <details>
 <summary>Use json / json5</summary>
 
-``` json
+```json
 {
   "url": "/api/test",
   "body": {
@@ -1113,25 +1103,25 @@ export default defineMock({
 
 use [`formidable`](https://www.npmjs.com/package/formidable#readme) to support.
 
-``` html
+```html
 <form action="/api/upload" method="post" enctype="multipart/form-data">
   <p>
     <span>file: </span>
-    <input type="file" name="files" multiple="multiple">
+    <input type="file" name="files" multiple="multiple" />
   </p>
   <p>
     <span>name:</span>
-    <input type="text" name="name" value="mark">
+    <input type="text" name="name" value="mark" />
   </p>
   <p>
-    <input type="submit" value="submit">
+    <input type="submit" value="submit" />
   </p>
 </form>
 ```
 
 fields `files` mapping to `formidable.File`
 
-``` ts
+```ts
 export default defineMock({
   url: '/api/upload',
   method: 'POST',
@@ -1150,7 +1140,7 @@ export default defineMock({
 <details>
 <summary>Graphql</summary>
 
-``` ts
+```ts
 import { buildSchema, graphql } from 'graphql'
 
 const schema = buildSchema(`
@@ -1171,10 +1161,10 @@ export default defineMock({
 })
 ```
 
-``` ts
+```ts
 fetch('/api/graphql', {
   method: 'POST',
-  body: JSON.stringify({ source: '{ hello }' })
+  body: JSON.stringify({ source: '{ hello }' }),
 })
 ```
 
@@ -1183,7 +1173,7 @@ fetch('/api/graphql', {
 <details>
 <summary>WebSocket Mock</summary>
 
-``` ts
+```ts
 // ws.mock.ts
 export default defineMock({
   url: '/socket.io',
@@ -1195,12 +1185,10 @@ export default defineMock({
       wsMap.set(token, ws)
       ws.on('message', (raw) => {
         const data = JSON.parse(String(raw))
-        if (data.type === 'ping')
-          return
+        if (data.type === 'ping') return
         // Broadcast
         for (const [_token, _ws] of wsMap.entires()) {
-          if (_token !== token)
-            _ws.send(raw)
+          if (_token !== token) _ws.send(raw)
         }
       })
     })
@@ -1208,19 +1196,23 @@ export default defineMock({
       console.error(err)
     })
     onCleanup(() => wsMap.clear())
-  }
+  },
 })
 ```
 
-``` ts
+```ts
 // app.ts
 const ws = new WebSocket('ws://localhost:5173/socket.io')
-ws.addEventListener('open', () => {
-  setInterval(() => {
-    // heartbeat
-    ws.send(JSON.stringify({ type: 'ping' }))
-  }, 1000)
-}, { once: true })
+ws.addEventListener(
+  'open',
+  () => {
+    setInterval(() => {
+      // heartbeat
+      ws.send(JSON.stringify({ type: 'ping' }))
+    }, 1000)
+  },
+  { once: true },
+)
 ws.addEventListener('message', (raw) => {
   console.log(raw)
 })

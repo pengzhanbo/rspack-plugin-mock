@@ -1,6 +1,6 @@
-export * from './core/rspack'
-export * from './helpers'
-export * from './server'
+export * from './core/rspack.js'
+export * from './helpers/index.js'
+export * from './server.js'
 export type {
   FormidableFile,
   MockHttpItem,
@@ -8,4 +8,4 @@ export type {
   MockRequest,
   MockServerPluginOptions,
   MockWebsocketItem,
-} from './types'
+} from './types/index.js'

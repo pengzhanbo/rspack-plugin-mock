@@ -1,13 +1,19 @@
 import type { Arrayable } from '@pengzhanbo/utils'
 import type { RspackPluginInstance } from '@rspack/core'
 import type { CorsOptions } from 'cors'
-import type { MockServerPluginOptions, PathFilter, RecordOptions, ResolvedRecordOptions, ServerBuildOption } from '../types'
-import type { Logger } from './logger'
+import type {
+  MockServerPluginOptions,
+  PathFilter,
+  RecordOptions,
+  ResolvedRecordOptions,
+  ServerBuildOption,
+} from '../types/index.js'
+import type { Logger } from './logger.js'
 import path from 'node:path'
 import process from 'node:process'
 import { isBoolean, isPlainObject, toArray } from '@pengzhanbo/utils'
 import ansis from 'ansis'
-import { createLogger } from '.'
+import { createLogger } from './logger.js'
 
 export interface ResolvedCompilerOptions {
   alias: Record<string, Arrayable<false | string>>
@@ -17,9 +23,8 @@ export interface ResolvedCompilerOptions {
   context?: string
 }
 
-export type ResolvePluginOptions = Required<Omit<MockServerPluginOptions, 'build'>>
-  & ResolvedCompilerOptions
-  & {
+export type ResolvePluginOptions = Required<Omit<MockServerPluginOptions, 'build'>> &
+  ResolvedCompilerOptions & {
     logger: Logger
     build: false | ServerBuildOption
     cors: false | CorsOptions
@@ -47,18 +52,23 @@ export function resolvePluginOptions(
     record = false,
     replay,
   }: MockServerPluginOptions,
-  { alias, context, plugins, proxies: rawProxies }: Omit<ResolvedCompilerOptions, 'wsProxies' | 'cors'>,
+  {
+    alias,
+    context,
+    plugins,
+    proxies: rawProxies,
+  }: Omit<ResolvedCompilerOptions, 'wsProxies' | 'cors'>,
 ): ResolvePluginOptions {
-  const logger = createLogger(
-    'rspack:mock',
-    isBoolean(log) ? (log ? 'info' : 'error') : log,
-  )
+  const logger = createLogger('rspack:mock', isBoolean(log) ? (log ? 'info' : 'error') : log)
 
   const proxies = [...toArray(prefix), ...rawProxies]
   const wsProxies = toArray(wsPrefix)
 
-  if (!proxies.length && !wsProxies.length)
-    logger.warn(`No proxy was configured, mock server will not work. See ${ansis.cyan('https://vite-plugin-mock-dev-server.netlify.app/guide/usage')}`)
+  if (!proxies.length && !wsProxies.length) {
+    logger.warn(
+      `No proxy was configured, mock server will not work. See ${ansis.cyan('https://vite-plugin-mock-dev-server.netlify.app/guide/usage')}`,
+    )
+  }
 
   // enable cors by default
   const enabled = !!cors
@@ -70,7 +80,7 @@ export function resolvePluginOptions(
       ...cors,
     }
   }
-  cwd = cwd || context || process.cwd()
+  cwd = cwd ?? context ?? process.cwd()
   const resolvedRecord = resolveRecordOptions(cwd, dir, record)
 
   return {
@@ -96,7 +106,7 @@ export function resolvePluginOptions(
           serverPort: 8080,
           dist: 'mockServer',
           log: 'error',
-          ...typeof build === 'object' ? build : {},
+          ...(typeof build === 'object' ? build : {}),
         }
       : false,
     alias,
@@ -120,20 +130,22 @@ export function resolvePluginOptions(
  * @param record - Record options / 录制配置
  * @returns Resolved record options / 解析后的录制配置
  */
-export function resolveRecordOptions(cwd: string, dir: string, record?: boolean | RecordOptions): ResolvedRecordOptions {
+export function resolveRecordOptions(
+  cwd: string,
+  dir: string,
+  record?: boolean | RecordOptions,
+): ResolvedRecordOptions {
   // Parse record configuration
-  const recordOptions = typeof record === 'boolean'
-    ? { enabled: record }
-    : record
+  const recordOptions = typeof record === 'boolean' ? { enabled: record } : record
   const expires = recordOptions?.expires ?? 0
   return {
     enabled: recordOptions?.enabled ?? false,
     cwd,
-    dir: path.join(dir, recordOptions?.dir || '.recordings'),
+    dir: path.join(dir, recordOptions?.dir ?? '.recordings'),
     overwrite: recordOptions?.overwrite ?? true,
     status: toArray(recordOptions?.status).map(Number),
     expires: expires === 0 ? Number.MAX_SAFE_INTEGER : expires * 1000,
     gitignore: recordOptions?.gitignore ?? true,
-    filter: recordOptions?.filter || (() => true),
+    filter: recordOptions?.filter ?? (() => true),
   }
 }

@@ -1,8 +1,8 @@
 {
   "name": "rsbuild-starter",
-  "type": "module",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "rsbuild dev --open",
     "build": "rsbuild build",

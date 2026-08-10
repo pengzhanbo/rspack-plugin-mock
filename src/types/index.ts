@@ -2,9 +2,9 @@ import type formidable from 'formidable'
 
 export type FormidableFile = formidable.File | formidable.File[]
 
-export * from './config'
-export * from './cookies'
-export * from './http'
-export * from './internal'
-export * from './options'
-export * from './record'
+export type * from './config.js'
+export type * from './cookies.js'
+export type * from './http.js'
+export type * from './internal.js'
+export type * from './options.js'
+export type * from './record.js'

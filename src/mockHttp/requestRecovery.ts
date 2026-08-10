@@ -17,8 +17,9 @@ export function collectRequest(req: http.IncomingMessage): void {
     chunks.push(Buffer.from(chunk))
   })
   req.on('end', () => {
-    if (chunks.length)
+    if (chunks.length) {
       requestCollectCache.set(req, Buffer.concat(chunks))
+    }
   })
 }
 
@@ -26,10 +27,12 @@ export function rewriteRequest(proxyReq: http.ClientRequest, req: http.IncomingM
   const buffer = requestCollectCache.get(req)
   if (buffer) {
     requestCollectCache.delete(req)
-    if (!proxyReq.headersSent)
+    if (!proxyReq.headersSent) {
       proxyReq.setHeader('Content-Length', buffer.byteLength)
+    }
 
-    if (!proxyReq.writableEnded)
+    if (!proxyReq.writableEnded) {
       proxyReq.write(buffer)
+    }
   }
 }

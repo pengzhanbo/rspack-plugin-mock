@@ -1,5 +1,5 @@
 import { defineMock } from 'rspack-plugin-mock/helper'
-import postList from './data/post'
+import postList from './data/post.js'
 
 // Different pages send the same interface and can get different
 // data through the query parameter of the source page

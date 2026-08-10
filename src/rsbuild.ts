@@ -1,5 +1,5 @@
-export * from './core/rsbuild'
-export * from './helpers'
+export * from './core/rsbuild.js'
+export * from './helpers/index.js'
 export type {
   FormidableFile,
   MockHttpItem,
@@ -7,4 +7,4 @@ export type {
   MockRequest,
   MockServerPluginOptions,
   MockWebsocketItem,
-} from './types'
+} from './types/index.js'
