@@ -9,7 +9,7 @@ export function doesProxyContextMatchUrl(
 ): boolean {
   const url = req.url!
   if (typeof context === 'function') {
-    return context(url, req)
+    return !!context(url, req)
   }
   if (context[0] === '^') {
     let pattern = PATTERN_CACHE.get(context)
