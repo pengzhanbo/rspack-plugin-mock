@@ -18,6 +18,7 @@ const config: UserConfig[] = defineConfig([{
   shims: true,
   sourcemap: false,
   dts: true,
+  exports: true,
   fixedExtension: false,
   async onSuccess(config) {
     for await (const file of fs.glob('*.js', { cwd: config.outDir })) {

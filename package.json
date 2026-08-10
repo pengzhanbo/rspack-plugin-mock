@@ -23,33 +23,12 @@
     "#json5-loader": "./dist/json5-loader.mjs"
   },
   "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
-    },
-    "./server": {
-      "import": {
-        "types": "./dist/server.d.ts",
-        "default": "./dist/server.js"
-      }
-    },
-    "./rsbuild": {
-      "import": {
-        "types": "./dist/rsbuild.d.ts",
-        "default": "./dist/rsbuild.js"
-      }
-    },
-    "./helper": {
-      "import": {
-        "types": "./dist/helper.d.ts",
-        "default": "./dist/helper.js"
-      }
-    },
+    ".": "./dist/index.js",
+    "./helper": "./dist/helper.js",
+    "./rsbuild": "./dist/rsbuild.js",
+    "./server": "./dist/server.js",
     "./package.json": "./package.json"
   },
-  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
