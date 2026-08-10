@@ -19,7 +19,7 @@ import {
   toArray,
 } from '@pengzhanbo/utils'
 import ansis from 'ansis'
-import { Cookies } from '../cookies'
+import Cookies from 'cookies'
 import { recordRequestWithRawReq, replayRecordedRequest } from '../recorder'
 import { createMatcher, doesProxyContextMatchUrl, urlParse } from '../utils'
 import { createCors } from './cors'
