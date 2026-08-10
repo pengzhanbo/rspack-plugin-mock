@@ -14,6 +14,7 @@ import {
   attemptAsync,
   isFunction,
   isString,
+  omit,
   partition,
   timestamp,
   toArray,
@@ -174,7 +175,7 @@ export function createMockMiddleware(
     const response = res as MockResponse
 
     // provide request 往请求实例中注入额外的请求信息
-    Object.assign(request, extraReq)
+    Object.assign(request, omit(extraReq, ['headers']))
     request.params = parseRequestParams(mock.url, pathname)
 
     // provide response
