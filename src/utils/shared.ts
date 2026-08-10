@@ -2,7 +2,6 @@ import type { IFs } from 'memfs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import Debug from 'debug'
 import { createFsFromVolume, Volume } from 'memfs'
 
 export const packageDir: string = getDirname(import.meta.url)
@@ -11,8 +10,6 @@ export const vfs: IFs = createFsFromVolume(new Volume())
 export function getDirname(importMetaUrl: string): string {
   return path.dirname(fileURLToPath(importMetaUrl))
 }
-
-export const debug: Debug.Debugger = Debug('vite:mock-dev-server')
 
 const windowsSlashRE = /\\/g
 const isWindows = os.platform() === 'win32'

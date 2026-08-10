@@ -23,9 +23,6 @@ importers:
       cors:
         specifier: ^2.8.6
         version: 2.8.6
-      debug:
-        specifier: ^4.4.3
-        version: 4.4.3(supports-color@5.5.0)
       formidable:
         specifier: ^3.5.4
         version: 3.5.4
@@ -75,9 +72,6 @@ importers:
       '@types/cors':
         specifier: ^2.8.19
         version: 2.8.19
-      '@types/debug':
-        specifier: ^4.1.13
-        version: 4.1.13
       '@types/formidable':
         specifier: ^3.5.1
         version: 3.5.1
