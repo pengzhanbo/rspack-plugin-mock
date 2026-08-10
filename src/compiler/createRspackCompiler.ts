@@ -1,9 +1,9 @@
 import type { Compiler, RspackOptions, RspackPluginInstance } from '@rspack/core'
 import { createRequire } from 'node:module'
+import { isBuiltin } from 'node:module'
 import process from 'node:process'
 import * as rspackCore from '@rspack/core'
 import ansis from 'ansis'
-import isCore from 'is-core-module'
 import { getPackageDepList, vfs } from '../utils'
 
 const require = createRequire(import.meta.url)
@@ -56,7 +56,7 @@ export function createCompiler(
       for (const { name } of modules) {
         if (name?.startsWith('external')) {
           const packageName = normalizePackageName(name)
-          if (!isCore(packageName) && !aliasList.includes(packageName))
+          if (!isBuiltin(packageName) && !aliasList.includes(packageName))
             externals.push(normalizePackageName(name))
         }
       }

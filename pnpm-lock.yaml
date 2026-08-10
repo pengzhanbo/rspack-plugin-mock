@@ -29,9 +29,6 @@ importers:
       http-status:
         specifier: ^2.1.0
         version: 2.1.0
-      is-core-module:
-        specifier: ^2.16.2
-        version: 2.16.2
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -75,9 +72,6 @@ importers:
       '@types/formidable':
         specifier: ^3.5.1
         version: 3.5.1
-      '@types/is-core-module':
-        specifier: ^2.2.2
-        version: 2.2.2
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
@@ -1147,9 +1141,6 @@ packages:
 
   '@types/hast@3.0.4':
     resolution: {integrity: sha512-WPs+bbQw5aCj+x6laNGWLH3wviHtoCv/P3+otBhbOhJgG8qtpdAMlTCxLtsTWA7LH1Oh/bFCHsBn0TPS5m30EQ==}
-
-  '@types/is-core-module@2.2.2':
-    resolution: {integrity: sha512-ht+SC4Z4M1WOSaGweZ052H51lNGErPltoQiCRMvlPUUxAx5fuNAk9f6oqFjxGH2ViBSjdGVUwOwpT9YNsDjFLQ==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -2276,10 +2267,6 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hasown@2.0.4:
-    resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
-    engines: {node: '>= 0.4'}
-
   hookable@6.1.1:
     resolution: {integrity: sha512-U9LYDy1CwhMCnprUfeAZWZGByVbhd54hwepegYTK7Pi5NvqEj63ifz5z+xukznehT7i6NIZRu89Ay1AZmRsLEQ==}
 
@@ -2368,10 +2355,6 @@ packages:
 
   is-callable@1.2.7:
     resolution: {integrity: sha512-1BC0BVFhS/p0qtw6enp8e+8OD0UrK0oFLztSjNzhcKA3WDuJxxAPXzPuPtKkjEY9UUoEWlX/8fgKeu2S8i9JTA==}
-    engines: {node: '>= 0.4'}
-
-  is-core-module@2.16.2:
-    resolution: {integrity: sha512-evOr8xfXKxE6qSR0hSXL2r3sd7ALj8+7jQEUvPYcm5sgZFdJ+AYzT6yNmJenvIYQBgIGwfwz08sL8zoL7yq2BA==}
     engines: {node: '>= 0.4'}
 
   is-data-view@1.0.2:
@@ -4263,8 +4246,6 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
-  '@types/is-core-module@2.2.2': {}
-
   '@types/json-schema@7.0.15': {}
 
   '@types/katex@0.16.8': {}
@@ -5544,10 +5525,6 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hasown@2.0.4:
-    dependencies:
-      function-bind: 1.1.2
-
   hookable@6.1.1: {}
 
   hosted-git-info@8.1.0:
@@ -5626,10 +5603,6 @@ snapshots:
       builtin-modules: 5.0.0
 
   is-callable@1.2.7: {}
-
-  is-core-module@2.16.2:
-    dependencies:
-      hasown: 2.0.4
 
   is-data-view@1.0.2:
     dependencies:
